@@ -1,0 +1,1905 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TCG HOLO — Card Investment Tracker</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&family=Syne:wght@400;600;800&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js">
+function copyCode(){
+  const code=document.getElementById('script-code').innerText.replace('Copy','').trim();
+  navigator.clipboard.writeText(code).then(()=>toast('Code copied!','success'));
+}
+
+</script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+<style>
+:root{--bg:#0a0a0f;--surface:#111118;--card-bg:#16161f;--border:#2a2a3a;--border-bright:#3d3d5c;--gold:#f5c842;--red:#ff4d6d;--green:#39d98a;--blue:#4d9fff;--purple:#b77fff;--text:#e8e8f0;--text-dim:#7a7a9a;--text-dimmer:#44445a;--hot:#ff6b35;}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--bg);color:var(--text);font-family:'Syne',sans-serif;min-height:100vh;overflow-x:hidden;}
+body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(77,159,255,0.03) 1px,transparent 1px),linear-gradient(90deg,rgba(77,159,255,0.03) 1px,transparent 1px);background-size:40px 40px;pointer-events:none;z-index:0;}
+body::after{content:'';position:fixed;top:-200px;right:-200px;width:600px;height:600px;background:radial-gradient(circle,rgba(183,127,255,0.08) 0%,transparent 70%);pointer-events:none;z-index:0;}
+.wrap{position:relative;z-index:1;max-width:1100px;margin:0 auto;padding:0 16px 80px;}
+
+/* HEADER */
+header{padding:28px 0 24px;display:flex;align-items:flex-end;justify-content:space-between;border-bottom:1px solid var(--border);margin-bottom:24px;gap:16px;flex-wrap:wrap;}
+.logo-eye{font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.2em;color:var(--purple);text-transform:uppercase;}
+.logo-title{font-family:'Bebas Neue',sans-serif;font-size:48px;line-height:1;background:linear-gradient(135deg,var(--gold) 0%,var(--purple) 60%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;letter-spacing:2px;}
+.logo-sub{font-family:'DM Mono',monospace;font-size:10px;color:var(--text-dim);}
+.header-right{display:flex;flex-direction:column;align-items:flex-end;gap:10px;}
+.header-stats{display:flex;gap:24px;}
+.hstat{text-align:right;}
+.hstat-value{font-family:'Bebas Neue',sans-serif;font-size:26px;line-height:1;color:var(--gold);}
+.hstat-label{font-family:'DM Mono',monospace;font-size:10px;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.1em;}
+.sync-bar{display:flex;align-items:center;gap:8px;font-family:'DM Mono',monospace;font-size:11px;color:var(--text-dim);}
+.sync-dot{width:7px;height:7px;border-radius:50%;background:var(--text-dimmer);flex-shrink:0;transition:background 0.3s;}
+.sync-dot.synced{background:var(--green);box-shadow:0 0 6px var(--green);}
+.sync-dot.syncing{background:var(--gold);animation:blink 1s infinite;}
+.sync-dot.error{background:var(--red);}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0.3}}
+
+/* SETUP BANNER */
+.setup-banner{background:var(--card-bg);border:1px solid rgba(183,127,255,0.4);border-radius:2px;padding:24px;margin-bottom:24px;position:relative;overflow:hidden;}
+.setup-banner::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--purple),var(--gold));}
+.setup-title{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:2px;color:var(--purple);margin-bottom:8px;}
+.setup-steps{font-family:'DM Mono',monospace;font-size:11px;color:var(--text-dim);line-height:2;margin-bottom:16px;background:var(--surface);padding:12px 16px;border-radius:2px;border:1px solid var(--border);}
+.setup-steps b{color:var(--text);}
+.setup-row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;}
+.setup-input{flex:1;min-width:260px;background:var(--surface);border:1px solid var(--border);border-radius:2px;padding:10px 14px;color:var(--text);font-family:'DM Mono',monospace;font-size:12px;outline:none;}
+.setup-input:focus{border-color:var(--purple);}
+.setup-input::placeholder{color:var(--text-dimmer);}
+.btn-connect{background:linear-gradient(135deg,var(--purple),var(--blue));border:none;border-radius:2px;padding:10px 22px;color:#fff;font-family:'Bebas Neue',sans-serif;font-size:17px;letter-spacing:1px;cursor:pointer;white-space:nowrap;}
+.btn-connect:disabled{opacity:0.5;cursor:not-allowed;}
+.connect-msg{font-family:'DM Mono',monospace;font-size:11px;margin-top:10px;padding:8px 12px;border-radius:2px;display:none;}
+.connect-msg.ok{background:rgba(57,217,138,0.1);border:1px solid rgba(57,217,138,0.3);color:var(--green);}
+.connect-msg.err{background:rgba(255,77,109,0.1);border:1px solid rgba(255,77,109,0.3);color:var(--red);}
+.connect-msg.info{background:rgba(245,200,66,0.08);border:1px solid rgba(245,200,66,0.25);color:var(--gold);}
+
+/* ADD FORM */
+.add-section{background:var(--card-bg);border:1px solid var(--border);border-radius:2px;padding:20px;margin-bottom:24px;position:relative;overflow:hidden;}
+.add-section::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--purple),var(--gold),var(--blue));}
+.section-label{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.2em;color:var(--purple);text-transform:uppercase;margin-bottom:14px;}
+.form-row1{display:grid;grid-template-columns:2fr 1fr 1fr;gap:10px;margin-bottom:10px;}
+.form-row2{display:grid;grid-template-columns:1fr 2fr auto;gap:10px;align-items:end;}
+.ff{display:flex;flex-direction:column;gap:5px;}
+.ff label{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.12em;color:var(--text-dim);text-transform:uppercase;}
+.ff input,.ff select,.ff textarea{background:var(--surface);border:1px solid var(--border);border-radius:2px;padding:9px 12px;color:var(--text);font-family:'DM Mono',monospace;font-size:12px;outline:none;width:100%;}
+.ff input:focus,.ff select:focus,.ff textarea:focus{border-color:var(--purple);}
+.ff input::placeholder,.ff textarea::placeholder{color:var(--text-dimmer);}
+.ff textarea{resize:none;height:38px;line-height:1.4;}
+.ff select option{background:var(--surface);}
+.btn-add{background:linear-gradient(135deg,var(--purple),var(--blue));border:none;border-radius:2px;padding:9px 22px;color:#fff;font-family:'Bebas Neue',sans-serif;font-size:17px;letter-spacing:1px;cursor:pointer;align-self:flex-end;transition:opacity 0.2s;}
+.btn-add:hover{opacity:0.85;}
+.btn-add:disabled{opacity:0.4;cursor:not-allowed;}
+
+/* GAME TAGS */
+.tag{display:inline-block;padding:2px 8px;border-radius:2px;font-family:'DM Mono',monospace;font-size:10px;white-space:nowrap;}
+.tag-pokemon{background:rgba(255,203,5,0.12);border:1px solid rgba(255,203,5,0.35);color:#ffcb05;}
+.tag-mtg{background:rgba(159,90,253,0.12);border:1px solid rgba(159,90,253,0.35);color:#9f5afd;}
+.tag-onepiece{background:rgba(255,77,109,0.12);border:1px solid rgba(255,77,109,0.35);color:#ff4d6d;}
+.tag-yugioh{background:rgba(77,159,255,0.12);border:1px solid rgba(77,159,255,0.35);color:#4d9fff;}
+.tag-lorcana{background:rgba(57,217,138,0.12);border:1px solid rgba(57,217,138,0.35);color:#39d98a;}
+.tag-digimon{background:rgba(255,152,0,0.12);border:1px solid rgba(255,152,0,0.35);color:#ff9800;}
+.tag-other{background:rgba(122,122,154,0.12);border:1px solid rgba(122,122,154,0.3);color:var(--text-dim);}
+
+/* CONTROLS */
+.controls{display:flex;gap:8px;margin-bottom:16px;align-items:center;flex-wrap:wrap;}
+.search-wrap{flex:1;min-width:160px;position:relative;}
+.search-icon{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--text-dim);pointer-events:none;}
+.search-wrap input{width:100%;background:var(--card-bg);border:1px solid var(--border);border-radius:2px;padding:8px 10px 8px 30px;color:var(--text);font-family:'DM Mono',monospace;font-size:11px;outline:none;}
+.filter-btn{background:var(--card-bg);border:1px solid var(--border);border-radius:2px;padding:8px 12px;color:var(--text-dim);font-family:'DM Mono',monospace;font-size:10px;cursor:pointer;text-transform:uppercase;transition:all 0.2s;white-space:nowrap;}
+.filter-btn.active{background:var(--surface);border-color:var(--purple);color:var(--purple);}
+.ctrl-select{background:var(--card-bg);border:1px solid var(--border);border-radius:2px;padding:8px 10px;color:var(--text-dim);font-family:'DM Mono',monospace;font-size:10px;outline:none;cursor:pointer;}
+.btn-sync{background:var(--card-bg);border:1px solid rgba(57,217,138,0.3);border-radius:2px;padding:8px 12px;color:var(--green);font-family:'DM Mono',monospace;font-size:10px;cursor:pointer;white-space:nowrap;}
+
+/* TABLE */
+.cards-table{width:100%;border-collapse:collapse;}
+.cards-table thead th{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.1em;color:var(--text-dim);text-transform:uppercase;text-align:left;padding:9px 12px;border-bottom:1px solid var(--border);white-space:nowrap;}
+.card-row{border-bottom:1px solid var(--border);cursor:pointer;transition:background 0.15s;animation:rowIn 0.3s ease both;}
+@keyframes rowIn{from{opacity:0;transform:translateX(-6px)}to{opacity:1;transform:translateX(0)}}
+.card-row:hover{background:rgba(255,255,255,0.02);}
+.card-row td{padding:8px 10px;vertical-align:middle;}
+.card-name{font-weight:600;font-size:13px;color:var(--text);}
+.card-set{font-family:'DM Mono',monospace;font-size:10px;color:var(--text-dim);margin-top:1px;}
+.card-note-preview{font-family:'DM Mono',monospace;font-size:10px;color:var(--text-dimmer);font-style:italic;margin-top:2px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.set-badge{display:inline-block;background:var(--surface);border:1px solid var(--border);border-radius:2px;padding:2px 7px;font-family:'DM Mono',monospace;font-size:10px;color:var(--blue);}
+.price-val{font-family:'Bebas Neue',sans-serif;font-size:19px;color:var(--gold);}
+.mentions-wrap{display:flex;align-items:center;gap:6px;}
+.mentions-num{font-family:'Bebas Neue',sans-serif;font-size:20px;color:var(--text);}
+.mdots{display:flex;gap:2px;}
+.mdot{width:5px;height:5px;border-radius:50%;background:var(--border);}
+.mdot.on{background:var(--purple);}
+.date-val{font-family:'DM Mono',monospace;font-size:10px;color:var(--text-dim);}
+.badge{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:2px;font-family:'DM Mono',monospace;font-size:10px;text-transform:uppercase;white-space:nowrap;}
+.badge.hot{background:rgba(255,107,53,0.12);border:1px solid rgba(255,107,53,0.4);color:var(--hot);}
+.badge.warm{background:rgba(245,200,66,0.1);border:1px solid rgba(245,200,66,0.35);color:var(--gold);}
+.badge.watch{background:rgba(77,159,255,0.1);border:1px solid rgba(77,159,255,0.35);color:var(--blue);}
+.badge.cold{background:rgba(122,122,154,0.1);border:1px solid rgba(122,122,154,0.25);color:var(--text-dim);}
+.bdot{width:5px;height:5px;border-radius:50%;background:currentColor;animation:bdp 2s infinite;}
+.badge.hot .bdot{animation:bdp 1.2s infinite;}
+.badge.cold .bdot{animation:none;}
+@keyframes bdp{0%,100%{opacity:1;transform:scale(1)}50%{opacity:0.4;transform:scale(0.6)}}
+.row-btns{display:flex;gap:6px;opacity:0;transition:opacity 0.15s;}
+.card-row:hover .row-btns{opacity:1;}
+.btn-xs{border-radius:2px;padding:3px 8px;font-family:'DM Mono',monospace;font-size:10px;cursor:pointer;border:1px solid;}
+.btn-mention{background:rgba(183,127,255,0.1);border-color:rgba(183,127,255,0.3);color:var(--purple);}
+.btn-unmention{background:rgba(245,200,66,0.08);border-color:rgba(245,200,66,0.25);color:var(--gold);}
+.btn-star{background:none;border:1px solid var(--border);border-radius:2px;font-size:12px;cursor:pointer;padding:3px 6px;color:var(--text-dimmer);transition:all 0.15s;white-space:nowrap;}
+.btn-star:hover{border-color:var(--gold);color:var(--gold);background:rgba(245,200,66,0.08);}
+.btn-star.starred{border-color:var(--gold);color:var(--gold);background:rgba(245,200,66,0.1);}
+.card-row.pinned{background:rgba(245,200,66,0.03);border-left:2px solid rgba(245,200,66,0.4);}
+.card-row.pinned td:first-child{padding-left:10px;}
+.last-seen-ok{font-family:'DM Mono',monospace;font-size:9px;color:var(--text-dimmer);}
+.last-seen-warn{font-family:'DM Mono',monospace;font-size:9px;color:var(--gold);}
+.last-seen-old{font-family:'DM Mono',monospace;font-size:9px;color:var(--red);}
+.target-row{display:flex;align-items:center;gap:8px;margin-bottom:14px;}
+.target-input{background:var(--surface);border:1px solid var(--border);border-radius:2px;padding:6px 10px;color:var(--text);font-family:'DM Mono',monospace;font-size:12px;outline:none;width:110px;}
+.target-input:focus{border-color:var(--green);}
+.target-bar-wrap{flex:1;height:6px;background:var(--border);border-radius:3px;overflow:hidden;}
+.target-bar{height:100%;border-radius:3px;transition:width 0.5s;}
+.target-label{font-family:'DM Mono',monospace;font-size:10px;color:var(--text-dim);white-space:nowrap;}
+.target-hit{color:var(--green);font-weight:600;}
+.card-img-wrap{text-align:center;margin-bottom:16px;}
+.card-img-wrap img{max-height:180px;border-radius:6px;box-shadow:0 4px 20px rgba(0,0,0,0.5);}
+.edit-panel{background:var(--surface);border:1px solid var(--border);border-radius:2px;padding:14px;margin-bottom:14px;display:none;}
+.edit-panel.open{display:block;}
+.edit-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;}
+.edit-field{display:flex;flex-direction:column;gap:4px;}
+.edit-field label{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.12em;color:var(--text-dim);text-transform:uppercase;}
+.edit-field input,.edit-field select,.edit-field textarea{background:var(--bg);border:1px solid var(--border);border-radius:2px;padding:7px 10px;color:var(--text);font-family:'DM Mono',monospace;font-size:11px;outline:none;width:100%;}
+.edit-field input:focus,.edit-field select:focus,.edit-field textarea:focus{border-color:var(--purple);}
+.edit-field textarea{resize:none;height:36px;line-height:1.4;}
+.edit-btns{display:flex;gap:8px;margin-top:8px;}
+.btn-save-edit{background:linear-gradient(135deg,var(--purple),var(--blue));border:none;border-radius:2px;padding:7px 18px;color:#fff;font-family:'Bebas Neue',sans-serif;font-size:15px;letter-spacing:1px;cursor:pointer;}
+.btn-cancel-edit{background:none;border:1px solid var(--border);border-radius:2px;padding:7px 14px;color:var(--text-dim);font-family:'DM Mono',monospace;font-size:10px;cursor:pointer;}
+.btn-edit-card{background:none;border:1px solid var(--border);border-radius:2px;padding:4px 10px;color:var(--text-dim);font-family:'DM Mono',monospace;font-size:10px;cursor:pointer;transition:all 0.15s;position:absolute;top:16px;right:50px;}
+.btn-edit-card:hover{border-color:var(--purple);color:var(--purple);}
+.btn-find-card{background:none;border:1px solid var(--border);border-radius:2px;padding:4px 10px;color:var(--text-dim);font-family:'DM Mono',monospace;font-size:10px;cursor:pointer;transition:all 0.15s;position:absolute;top:16px;right:96px;text-decoration:none;}
+.btn-find-card:hover{border-color:var(--blue);color:var(--blue);}
+.btn-export{background:var(--card-bg);border:1px solid rgba(57,217,138,0.3);border-radius:2px;padding:8px 12px;color:var(--green);font-family:'DM Mono',monospace;font-size:10px;cursor:pointer;white-space:nowrap;}
+.btn-export:hover{background:rgba(57,217,138,0.08);}
+.portfolio-bar{background:var(--card-bg);border:1px solid var(--border);border-radius:2px;padding:10px 16px;margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;}
+.portfolio-val{font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--gold);}
+.portfolio-label{font-family:'DM Mono',monospace;font-size:10px;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.1em;}
+.mention-log{font-family:'DM Mono',monospace;font-size:10px;color:var(--text-dimmer);margin-top:3px;}
+.btn-del{background:rgba(255,77,109,0.08);border-color:rgba(255,77,109,0.2);color:var(--red);}
+
+/* MOBILE CARDS */
+.mob-cards{display:none;}
+.mob-card{background:var(--card-bg);border:1px solid var(--border);border-radius:2px;padding:14px;margin-bottom:10px;cursor:pointer;animation:rowIn 0.3s ease both;}
+.mob-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;gap:8px;}
+.mob-name{font-weight:600;font-size:14px;color:var(--text);}
+.mob-set{font-family:'DM Mono',monospace;font-size:10px;color:var(--text-dim);margin-top:2px;}
+.mob-note{font-family:'DM Mono',monospace;font-size:10px;color:var(--text-dimmer);font-style:italic;margin-top:2px;}
+.mob-mid{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px;}
+.mob-price{font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--gold);}
+.mob-info{font-family:'DM Mono',monospace;font-size:10px;color:var(--text-dim);}
+.mob-bot{display:flex;justify-content:space-between;align-items:center;}
+
+/* MODAL */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.85);backdrop-filter:blur(4px);z-index:100;display:flex;align-items:center;justify-content:center;padding:16px;}
+.modal{background:var(--card-bg);border:1px solid var(--border-bright);border-radius:2px;padding:24px;width:100%;max-width:520px;max-height:90vh;overflow-y:auto;position:relative;}
+.modal::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--gold),var(--purple));}
+.modal-title{font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:2px;margin-bottom:2px;padding-right:36px;}
+.modal-close{position:absolute;top:16px;right:16px;background:none;border:1px solid var(--border);border-radius:2px;color:var(--text-dim);width:28px;height:28px;cursor:pointer;font-size:13px;display:flex;align-items:center;justify-content:center;}
+.modal-close:hover{border-color:var(--red);color:var(--red);}
+.modal-meta{font-family:'DM Mono',monospace;font-size:10px;color:var(--text-dim);margin-bottom:6px;}
+.modal-note-box{font-family:'DM Mono',monospace;font-size:11px;color:var(--text-dim);font-style:italic;margin-bottom:16px;padding:8px 12px;background:var(--surface);border-left:2px solid var(--purple);}
+.modal-sec{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.15em;color:var(--purple);text-transform:uppercase;margin-bottom:8px;margin-top:16px;}
+.ai-box{background:var(--surface);border:1px solid var(--border);border-radius:2px;padding:14px;min-height:64px;font-size:12px;color:var(--text);line-height:1.6;}
+.ai-load{display:flex;gap:6px;align-items:center;color:var(--text-dim);font-family:'DM Mono',monospace;font-size:11px;}
+.ai-load span{display:inline-block;width:5px;height:5px;background:var(--purple);border-radius:50%;animation:blink 1.2s infinite;}
+.ai-load span:nth-child(2){animation-delay:0.2s;}
+.ai-load span:nth-child(3){animation-delay:0.4s;}
+.ph-entry{display:flex;justify-content:space-between;align-items:center;background:var(--surface);border:1px solid var(--border);border-radius:2px;padding:8px 12px;margin-bottom:5px;}
+.ph-date{font-family:'DM Mono',monospace;font-size:10px;color:var(--text-dim);}
+.ph-price{font-family:'Bebas Neue',sans-serif;font-size:17px;color:var(--gold);}
+
+/* EMPTY / TOAST */
+.empty{text-align:center;padding:60px 20px;}
+.empty-icon{font-size:36px;opacity:0.2;margin-bottom:10px;}
+.empty-title{font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--text-dimmer);letter-spacing:2px;margin-bottom:5px;}
+.empty-sub{font-family:'DM Mono',monospace;font-size:11px;color:var(--text-dimmer);}
+.toast{position:fixed;bottom:24px;right:16px;background:var(--card-bg);border:1px solid var(--border-bright);border-radius:2px;padding:12px 16px;font-family:'DM Mono',monospace;font-size:11px;color:var(--text);z-index:200;max-width:280px;transition:opacity 0.3s;}
+.toast.success{border-left:3px solid var(--green);}
+.toast.info{border-left:3px solid var(--blue);}
+.toast.error{border-left:3px solid var(--red);}
+
+/* GUIDE */
+.guide{max-width:1100px;margin:48px auto 0;padding:0 16px 80px;position:relative;z-index:1;}
+.guide-title{font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:2px;color:var(--purple);margin-bottom:4px;}
+.guide-sub{font-family:'DM Mono',monospace;font-size:11px;color:var(--text-dim);margin-bottom:28px;}
+.g-step{display:flex;gap:16px;margin-bottom:22px;}
+.g-num{font-family:'Bebas Neue',sans-serif;font-size:32px;color:var(--gold);line-height:1;flex-shrink:0;width:28px;}
+.g-body .g-title{font-family:'Syne',sans-serif;font-weight:600;font-size:14px;color:var(--text);margin-bottom:4px;}
+.g-body .g-desc{font-family:'DM Mono',monospace;font-size:11px;color:var(--text-dim);line-height:1.7;}
+.g-desc a{color:var(--blue);}
+.code-block{background:var(--surface);border:1px solid var(--border);border-radius:2px;padding:14px;margin-top:10px;font-family:'DM Mono',monospace;font-size:11px;color:var(--green);line-height:1.7;white-space:pre;overflow-x:auto;position:relative;}
+.copy-btn{position:absolute;top:8px;right:8px;background:var(--card-bg);border:1px solid var(--border);border-radius:2px;padding:3px 9px;color:var(--text-dim);font-family:'DM Mono',monospace;font-size:10px;cursor:pointer;}
+.copy-btn:hover{color:var(--text);}
+hr.div{border:none;border-top:1px solid var(--border);margin:36px 0;}
+
+/* CHARTS */
+.charts-row{display:grid;grid-template-columns:3fr 2fr;gap:12px;margin-bottom:20px;}
+.chart-box{background:var(--card-bg);border:1px solid var(--border);border-radius:2px;padding:10px 14px;position:relative;height:160px;display:flex;flex-direction:column;}
+.chart-box::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--purple),var(--blue));}
+.chart-title{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.15em;color:var(--purple);text-transform:uppercase;margin-bottom:6px;flex-shrink:0;}
+.chart-canvas-wrap{flex:1;position:relative;min-height:0;}
+.chart-canvas{position:absolute;inset:0;width:100%!important;height:100%!important;}
+/* NAME DROPDOWN */
+#name-dropdown .nd-item{padding:10px 14px;cursor:pointer;border-bottom:1px solid #2a2a3a;display:flex;justify-content:space-between;align-items:center;transition:background 0.1s;}
+#name-dropdown .nd-item:last-child{border-bottom:none;}
+#name-dropdown .nd-item:hover{background:rgba(183,127,255,0.08);}
+#name-dropdown .nd-name{font-family:'Syne',sans-serif;font-weight:600;font-size:13px;color:#e8e8f0;}
+#name-dropdown .nd-meta{font-family:'DM Mono',monospace;font-size:10px;color:#7a7a9a;margin-top:2px;}
+#name-dropdown .nd-badge{font-family:'DM Mono',monospace;font-size:10px;padding:2px 8px;border-radius:2px;}
+/* CONFIRM DIALOG */
+.confirm-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.8);backdrop-filter:blur(4px);z-index:200;display:flex;align-items:center;justify-content:center;padding:16px;}
+.confirm-box{background:#16161f;border:1px solid #3d3d5c;border-radius:2px;padding:28px;width:100%;max-width:400px;position:relative;}
+.confirm-box::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,#b77fff,#f5c842);}
+.confirm-title{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:2px;color:#e8e8f0;margin-bottom:4px;}
+.confirm-meta{font-family:'DM Mono',monospace;font-size:11px;color:#7a7a9a;margin-bottom:20px;line-height:1.6;}
+.confirm-btns{display:flex;gap:10px;flex-wrap:wrap;}
+.confirm-btn{border:none;border-radius:2px;padding:10px 20px;font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:1px;cursor:pointer;flex:1;}
+.confirm-btn.primary{background:linear-gradient(135deg,#b77fff,#4d9fff);color:#fff;}
+.confirm-btn.secondary{background:#111118;border:1px solid #2a2a3a;color:#7a7a9a;}
+.confirm-btn:hover{opacity:0.85;}
+.confirm-btn:disabled{opacity:0.5;cursor:not-allowed;}
+/* SAVING SPINNER */
+.saving-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:300;display:flex;align-items:center;justify-content:center;}
+.saving-box{background:#16161f;border:1px solid #3d3d5c;border-radius:2px;padding:20px 32px;display:flex;align-items:center;gap:14px;font-family:'DM Mono',monospace;font-size:13px;color:#e8e8f0;}
+.saving-spinner{width:18px;height:18px;border:2px solid #2a2a3a;border-top-color:#b77fff;border-radius:50%;animation:spin 0.7s linear infinite;flex-shrink:0;}
+@keyframes spin{to{transform:rotate(360deg)}}
+/* BUY DIP badge */
+.badge.buydip{background:rgba(57,217,138,0.15);border:1px solid rgba(57,217,138,0.5);color:var(--green);}
+/* Modal price chart */
+.modal-chart-wrap{background:var(--surface);border:1px solid var(--border);border-radius:2px;padding:12px;margin-bottom:16px;}
+/* CardMarket live price */
+.cm-price-box{border-radius:2px;padding:10px 14px;margin-bottom:14px;font-family:'DM Mono',monospace;font-size:11px;line-height:1.7;display:flex;align-items:flex-start;gap:10px;}
+.cm-price-box.up{background:rgba(57,217,138,0.08);border:1px solid rgba(57,217,138,0.3);color:var(--green);}
+.cm-price-box.down{background:rgba(255,77,109,0.08);border:1px solid rgba(255,77,109,0.3);color:var(--red);}
+.cm-price-box.flat{background:rgba(77,159,255,0.08);border:1px solid rgba(77,159,255,0.25);color:var(--blue);}
+.cm-price-box.buydip{background:rgba(57,217,138,0.12);border:1px solid rgba(57,217,138,0.5);color:var(--green);}
+.cm-price-box.loading{background:var(--surface);border:1px solid var(--border);color:var(--text-dim);}
+.cm-icon{font-size:20px;flex-shrink:0;}
+.cm-strong{display:block;font-size:13px;font-weight:600;margin-bottom:2px;}
+@media(max-width:680px){.charts-row{grid-template-columns:1fr;}}
+/* TABS */
+.tab-bar{display:flex;gap:0;margin-bottom:24px;border-bottom:1px solid var(--border);}
+.tab-btn{background:none;border:none;border-bottom:2px solid transparent;padding:10px 20px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;color:var(--text-dim);cursor:pointer;transition:all 0.2s;margin-bottom:-1px;}
+.tab-btn.active{color:var(--purple);border-bottom-color:var(--purple);}
+.tab-btn:hover{color:var(--text);}
+.tab-content{display:none;}
+.tab-content.active{display:block;}
+
+/* DASHBOARD */
+.dash-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px;}
+.dash-grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:20px;}
+.dash-box{background:var(--card-bg);border:1px solid var(--border);border-radius:2px;padding:16px;position:relative;overflow:hidden;}
+.dash-box::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--purple),var(--blue));}
+.dash-box.full{grid-column:1/-1;}
+.dash-label{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.15em;color:var(--purple);text-transform:uppercase;margin-bottom:10px;}
+.dash-val{font-family:'Bebas Neue',sans-serif;font-size:32px;color:var(--gold);line-height:1;}
+.dash-sub{font-family:'DM Mono',monospace;font-size:10px;color:var(--text-dim);margin-top:3px;}
+.dash-canvas-wrap{position:relative;height:140px;}
+
+/* WEEKLY DIGEST */
+.digest-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);}
+.digest-row:last-child{border-bottom:none;}
+.digest-label{font-family:'DM Mono',monospace;font-size:11px;color:var(--text-dim);}
+.digest-val{font-family:'Bebas Neue',sans-serif;font-size:18px;color:var(--gold);}
+.digest-val.green{color:var(--green);}
+.digest-val.red{color:var(--red);}
+
+/* LEADERBOARD */
+.lb-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);}
+.lb-row:last-child{border-bottom:none;}
+.lb-rank{font-family:'Bebas Neue',sans-serif;font-size:20px;color:var(--text-dimmer);width:24px;flex-shrink:0;}
+.lb-rank.gold{color:#ffd700;}
+.lb-rank.silver{color:#c0c0c0;}
+.lb-rank.bronze{color:#cd7f32;}
+.lb-name{flex:1;font-weight:600;font-size:13px;color:var(--text);}
+.lb-score{font-family:'Bebas Neue',sans-serif;font-size:18px;color:var(--purple);}
+.lb-bar-wrap{width:80px;height:4px;background:var(--border);border-radius:2px;overflow:hidden;}
+.lb-bar{height:100%;background:linear-gradient(90deg,var(--purple),var(--blue));border-radius:2px;}
+
+/* HEATMAP */
+.heatmap-wrap{display:flex;gap:3px;flex-wrap:wrap;}
+.hm-day{width:14px;height:14px;border-radius:2px;background:var(--border);transition:transform 0.1s;}
+.hm-day:hover{transform:scale(1.3);}
+.hm-day.l1{background:rgba(183,127,255,0.3);}
+.hm-day.l2{background:rgba(183,127,255,0.55);}
+.hm-day.l3{background:rgba(183,127,255,0.8);}
+.hm-day.l4{background:#b77fff;}
+.hm-legend{display:flex;align-items:center;gap:6px;margin-top:8px;font-family:'DM Mono',monospace;font-size:9px;color:var(--text-dim);}
+.hm-legend-box{width:10px;height:10px;border-radius:1px;}
+
+/* ROI */
+.roi-positive{color:var(--green);}
+.roi-negative{color:var(--red);}
+
+/* TARGET TIMELINE */
+.tl-item{display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid var(--border);}
+.tl-item:last-child{border-bottom:none;}
+.tl-dot{width:8px;height:8px;border-radius:50%;background:var(--green);flex-shrink:0;}
+.tl-name{flex:1;font-size:12px;color:var(--text);font-weight:600;}
+.tl-date{font-family:'DM Mono',monospace;font-size:10px;color:var(--text-dim);}
+.tl-price{font-family:'Bebas Neue',sans-serif;font-size:16px;color:var(--green);}
+
+@media(max-width:680px){
+  .dash-grid,.dash-grid-3{grid-template-columns:1fr;}
+}
+::-webkit-scrollbar{width:4px;}
+::-webkit-scrollbar-track{background:var(--bg);}
+::-webkit-scrollbar-thumb{background:var(--border-bright);border-radius:2px;}
+
+@media(max-width:680px){
+  .logo-title{font-size:36px;}
+  .form-row1{grid-template-columns:1fr 1fr;}
+  .form-row2{grid-template-columns:1fr 1fr;}
+  .form-row2 .btn-add{grid-column:1/-1;}
+  .desk-table{display:none;}
+  .mob-cards{display:block;}
+}
+/* VIEW TOGGLE */
+.view-toggle{display:flex;gap:4px;margin-left:4px;}
+.vbtn{background:var(--card-bg);border:1px solid var(--border);border-radius:2px;padding:7px 10px;color:var(--text-dim);font-size:14px;cursor:pointer;transition:all 0.15s;line-height:1;}
+.vbtn.active{border-color:var(--purple);color:var(--purple);background:var(--surface);}
+/* CARD GRID */
+.card-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(175px,1fr));gap:14px;margin-bottom:20px;}
+.cg-card{background:var(--card-bg);border:1px solid var(--border);border-radius:4px;overflow:hidden;cursor:pointer;transition:transform 0.15s,border-color 0.15s;position:relative;display:flex;flex-direction:column;}
+.cg-card:hover{transform:translateY(-3px);border-color:var(--border-bright);}
+.cg-card.pinned{border-left:2px solid rgba(245,200,66,0.6);}
+.cg-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--purple),var(--blue));z-index:1;}
+.cg-img-wrap{position:relative;background:var(--surface);aspect-ratio:3/4;overflow:hidden;display:flex;align-items:center;justify-content:center;}
+.cg-img{width:100%;height:100%;object-fit:cover;transition:transform 0.2s;}
+.cg-card:hover .cg-img{transform:scale(1.04);}
+.cg-placeholder{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;color:var(--text-dimmer);font-size:28px;gap:4px;}
+.cg-placeholder span{font-family:'DM Mono',monospace;font-size:9px;color:var(--text-dimmer);text-align:center;padding:0 8px;}
+.cg-badge-pos{position:absolute;top:6px;left:6px;z-index:2;}
+.cg-star-pos{position:absolute;top:6px;right:6px;z-index:2;background:rgba(0,0,0,0.55);border:none;border-radius:2px;padding:2px 5px;font-size:11px;cursor:pointer;color:var(--text-dimmer);transition:all 0.15s;}
+.cg-star-pos:hover,.cg-star-pos.starred{color:var(--gold);}
+.cg-body{padding:10px;flex:1;display:flex;flex-direction:column;gap:3px;}
+.cg-name{font-weight:600;font-size:12px;color:var(--text);line-height:1.3;}
+.cg-set{font-family:'DM Mono',monospace;font-size:9px;color:var(--text-dim);}
+.cg-bottom{display:flex;justify-content:space-between;align-items:baseline;margin-top:5px;}
+.cg-price{font-family:'Bebas Neue',sans-serif;font-size:16px;color:var(--gold);}
+.cg-mentions{font-family:'DM Mono',monospace;font-size:9px;color:var(--text-dim);}
+.cg-lastseen{font-family:'DM Mono',monospace;font-size:9px;color:var(--text-dimmer);margin-top:2px;}
+.cg-actions{display:flex;gap:4px;margin-top:7px;opacity:0;transition:opacity 0.15s;}
+.cg-card:hover .cg-actions{opacity:1;}
+.cga{flex:1;background:var(--surface);border:1px solid var(--border);border-radius:2px;padding:3px 0;font-family:'DM Mono',monospace;font-size:9px;cursor:pointer;text-align:center;transition:background 0.1s;}
+.cga.p{color:var(--purple);border-color:rgba(183,127,255,0.3);}
+.cga.u{color:var(--gold);border-color:rgba(245,200,66,0.25);}
+.cga.d{color:var(--red);border-color:rgba(255,77,109,0.2);}
+.cga:hover{background:var(--card-bg);}
+@media(max-width:680px){.card-grid{grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div>
+      <div class="logo-eye">TCG Intelligence</div>
+      <div class="logo-title">HOLO TRACKER</div>
+      <div class="logo-sub">Card Investment &amp; Mention Tracker — Google Sheets Sync</div>
+    </div>
+    <div class="header-right">
+      <div class="sync-bar"><div class="sync-dot" id="sync-dot"></div><span id="sync-label">Not connected</span></div>
+      <div class="header-stats">
+        <div class="hstat"><div class="hstat-value" id="stat-total">0</div><div class="hstat-label">Cards</div></div>
+        <div class="hstat"><div class="hstat-value" id="stat-hot">0</div><div class="hstat-label">Hot</div></div>
+        <div class="hstat"><div class="hstat-value" id="stat-mentions">0</div><div class="hstat-label">Mentions</div></div>
+      </div>
+    </div>
+  </header>
+
+  <!-- TAB BAR -->
+  <div class="tab-bar">
+    <button class="tab-btn active" onclick="switchTab('tracker',this)">🃏 Tracker</button>
+    <button class="tab-btn" onclick="switchTab('dashboard',this)">📊 Dashboard</button>
+  </div>
+
+  <!-- TRACKER TAB -->
+  <div class="tab-content active" id="tab-tracker">
+
+  <!-- SETUP BANNER -->
+  <div class="setup-banner" id="setup-banner">
+    <div class="setup-title">⚡ Connect to Google Sheets</div>
+    <div class="setup-steps">
+      <b>Step 1</b> — Open your Google Sheet → Extensions → Apps Script<br>
+      <b>Step 2</b> — Delete all existing code → paste the code from the guide below → Save (Ctrl+S)<br>
+      <b>Step 3</b> — Click Deploy → New deployment → Type: Web app → Execute as: Me → Who has access: Anyone → Deploy<br>
+      <b>Step 4</b> — Authorize when Google asks → copy the URL ending in /exec<br>
+      <b>Step 5</b> — Paste it below and click Connect
+    </div>
+    <div class="setup-row">
+      <input type="text" class="setup-input" id="url-input" placeholder="https://script.google.com/macros/s/YOUR_ID/exec" />
+      <button class="btn-connect" id="btn-connect" onclick="connectSheet()">CONNECT</button>
+    </div>
+    <div class="connect-msg" id="connect-msg"></div>
+  </div>
+
+  <!-- ADD FORM -->
+  <div class="add-section">
+    <div class="section-label">⊕ Add Card Mention</div>
+    <div class="form-row1">
+      <div class="ff" style="position:relative;">
+        <label>Card Name</label>
+        <input type="text" id="in-name" placeholder="e.g. Charizard VMAX" oninput="onNameInput()" onkeydown="onNameKey(event)" autocomplete="off" />
+        <div id="name-dropdown" style="display:none;position:absolute;top:100%;left:0;right:0;background:#16161f;border:1px solid #3d3d5c;border-top:none;border-radius:0 0 2px 2px;z-index:50;max-height:220px;overflow-y:auto;"></div>
+      </div>
+      <div class="ff"><label>Set / Set ID</label><input type="text" id="in-set" placeholder="e.g. SV01" /></div>
+      <div class="ff">
+        <label>Price &amp; Currency</label>
+        <div style="display:flex;gap:6px;">
+          <input type="number" id="in-price" placeholder="0.00" step="0.01" min="0" style="flex:1;" />
+          <select id="in-currency" style="width:72px;background:var(--surface);border:1px solid var(--border);border-radius:2px;padding:9px 8px;color:var(--text);font-family:'DM Mono',monospace;font-size:12px;outline:none;">
+            <option value="CHF">CHF</option>
+            <option value="EUR">EUR</option>
+            <option value="USD">USD</option>
+          </select>
+        </div>
+      </div>
+    </div>
+    <div class="form-row2">
+      <div class="ff">
+        <label>Game</label>
+        <select id="in-game">
+          <option value="pokemon">Pokémon</option>
+          <option value="onepiece">One Piece</option>
+          <option value="lorcana">Lorcana</option>
+          <option value="mtg">MTG</option>
+          <option value="yugioh">Yu-Gi-Oh!</option>
+          <option value="digimon">Digimon</option>
+          <option value="other">Other</option>
+        </select>
+      </div>
+      <div class="ff"><label>Notes (YouTuber, reason…)</label><textarea id="in-notes" placeholder="e.g. Heard on TCC Collector, hype around reprint…"></textarea></div>
+      <button class="btn-add" id="btn-add" onclick="addCard()">ADD</button>
+    </div>
+  </div>
+
+  <!-- CONTROLS -->
+  <div class="controls">
+    <div class="search-wrap"><span class="search-icon">⌕</span><input type="text" id="in-search" placeholder="Search cards, notes…" oninput="render()" /></div>
+    <button class="filter-btn active" onclick="setFilter('all',this)">All</button>
+    <button class="filter-btn" onclick="setFilter('hot',this)">🔥 Hot</button>
+    <button class="filter-btn" onclick="setFilter('warm',this)">⚡ Warm</button>
+    <button class="filter-btn" onclick="setFilter('watch',this)">👁 Watch</button>
+    <button class="filter-btn" onclick="setFilter('buydip',this)">🛒 Buy Dip</button>
+    <select class="ctrl-select" id="in-sort" onchange="render()">
+      <option value="mentions">Most Mentioned</option>
+      <option value="new">Newest</option>
+      <option value="mentions">Most Mentioned</option>
+      <option value="price-hi">Highest Price</option>
+      <option value="price-lo">Lowest Price</option>
+      <option value="az">A–Z</option>
+      <option value="last-seen">Last Seen</option>
+    </select>
+    <select class="ctrl-select" id="in-game-filter" onchange="render()">
+      <option value="all">All Games</option>
+      <option value="pokemon">Pokémon</option>
+      <option value="onepiece">One Piece</option>
+      <option value="lorcana">Lorcana</option>
+      <option value="mtg">MTG</option>
+      <option value="yugioh">Yu-Gi-Oh!</option>
+      <option value="digimon">Digimon</option>
+      <option value="other">Other</option>
+    </select>
+    <button class="btn-sync" onclick="loadSheet()">↻ Sync</button>
+    <button class="btn-export" onclick="exportCSV()">⬇ CSV</button>
+    <div class="view-toggle">
+      <button class="vbtn" id="vbtn-grid" onclick="setView('grid',this)" title="Grid">⊞</button>
+      <button class="vbtn active" id="vbtn-list" onclick="setView('list',this)" title="List">☰</button>
+    </div>
+  </div>
+  <!-- PORTFOLIO BAR -->
+  <div class="portfolio-bar" id="portfolio-bar" style="display:none">
+    <div><div class="portfolio-label">Portfolio Value</div><div class="portfolio-val" id="portfolio-val">CHF 0.00</div></div>
+    <div><div class="portfolio-label">Avg per Card</div><div class="portfolio-val" id="portfolio-avg" style="font-size:16px">CHF 0.00</div></div>
+    <div><div class="portfolio-label">Pinned Cards</div><div class="portfolio-val" id="portfolio-pinned" style="font-size:16px">0</div></div>
+    <div><div class="portfolio-label">Hot + Buy Dip</div><div class="portfolio-val" id="portfolio-hot" style="font-size:16px;color:var(--hot)">0</div></div>
+  </div>
+
+  <!-- CHARTS -->
+  <div class="charts-row" id="charts-row">
+    <div class="chart-box">
+      <div class="chart-title">📊 Cards by Mentions</div>
+      <div class="chart-canvas-wrap"><canvas id="chart-mentions" class="chart-canvas"></canvas></div>
+    </div>
+    <div class="chart-box">
+      <div class="chart-title">🎯 Signal Distribution</div>
+      <div class="chart-canvas-wrap"><canvas id="chart-signals" class="chart-canvas"></canvas></div>
+    </div>
+  </div>
+
+  <!-- DESKTOP TABLE -->
+  <div class="desk-table">
+    <table class="cards-table">
+      <thead><tr><th></th><th>Card · Set · Notes</th><th>Game</th><th>Last Price</th><th>Mentions</th><th>Last Seen</th><th>Signal</th><th></th></tr></thead>
+      <tbody id="tbody"></tbody>
+    </table>
+  </div>
+
+  <!-- MOBILE -->
+  <div class="mob-cards" id="mob-wrap"></div>
+  <div class="card-grid" id="card-grid" style="display:none;"></div>
+
+  <div id="empty" class="empty" style="display:none">
+    <div class="empty-icon">🃏</div>
+    <div class="empty-title">No Cards Yet</div>
+    <div class="empty-sub">Add a card you heard about to get started</div>
+  </div>
+
+  </div><!-- /tab-tracker -->
+
+  <!-- DASHBOARD TAB -->
+  <div class="tab-content" id="tab-dashboard">
+
+    <!-- WEEKLY DIGEST -->
+    <div class="dash-box" style="margin-bottom:16px;">
+      <div class="dash-label">📅 This Week</div>
+      <div id="digest-content"></div>
+    </div>
+
+    <!-- KEY STATS -->
+    <div class="dash-grid-3" style="margin-bottom:16px;">
+      <div class="dash-box">
+        <div class="dash-label">💼 Portfolio Value</div>
+        <div class="dash-val" id="d-total">—</div>
+        <div class="dash-sub">sum of all last logged prices</div>
+      </div>
+      <div class="dash-box">
+        <div class="dash-label">🔥 Hot + Buy Dip</div>
+        <div class="dash-val" id="d-hot">—</div>
+        <div class="dash-sub">cards with strong signal</div>
+      </div>
+      <div class="dash-box">
+        <div class="dash-label">📣 Total Mentions</div>
+        <div class="dash-val" id="d-mentions">—</div>
+        <div class="dash-sub">across all tracked cards</div>
+      </div>
+    </div>
+
+    <!-- LEADERBOARD + SIGNAL CHART -->
+    <div class="dash-grid" style="margin-bottom:16px;">
+      <div class="dash-box">
+        <div class="dash-label">🏆 Leaderboard</div>
+        <div id="leaderboard-list"></div>
+      </div>
+      <div class="dash-box">
+        <div class="dash-label">🎯 Signal Distribution</div>
+        <div class="dash-canvas-wrap"><canvas id="dash-signal-chart" style="width:100%;height:100%;"></canvas></div>
+      </div>
+    </div>
+
+    <!-- HEATMAP -->
+    <div class="dash-box full" style="margin-bottom:16px;">
+      <div class="dash-label">🔥 Mention Heatmap — Last 12 Weeks</div>
+      <div class="heatmap-wrap" id="heatmap"></div>
+      <div class="hm-legend">
+        <span>Less</span>
+        <div class="hm-legend-box" style="background:var(--border)"></div>
+        <div class="hm-legend-box hm-day l1"></div>
+        <div class="hm-legend-box hm-day l2"></div>
+        <div class="hm-legend-box hm-day l3"></div>
+        <div class="hm-legend-box hm-day l4"></div>
+        <span>More</span>
+      </div>
+    </div>
+
+    <!-- PRICE TRENDS + ROI -->
+    <div class="dash-grid" style="margin-bottom:16px;">
+      <div class="dash-box">
+        <div class="dash-label">📈 Top Cards — Price Trend</div>
+        <div class="dash-canvas-wrap"><canvas id="dash-price-chart" style="width:100%;height:100%;"></canvas></div>
+      </div>
+      <div class="dash-box">
+        <div class="dash-label">💸 ROI Tracker — vs First Logged Price</div>
+        <div id="roi-list"></div>
+      </div>
+    </div>
+
+    <!-- TARGET TIMELINE -->
+    <div class="dash-box full">
+      <div class="dash-label">🎯 Target Hit History</div>
+      <div id="target-timeline"></div>
+    </div>
+
+  </div><!-- /tab-dashboard -->
+
+</div><!-- /wrap -->
+
+<!-- MODAL -->
+<div id="modal" style="display:none" class="modal-overlay" onclick="if(event.target===this)closeModal()">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal()">✕</button>
+    <button class="btn-edit-card" id="btn-edit-card" onclick="toggleEditPanel()">✏ Edit</button>
+    <a id="btn-cm-link" href="#" target="_blank" class="btn-find-card" style="text-decoration:none;display:inline-block;">🔗 Cardmarket</a>
+    <div class="modal-title" id="m-name"></div>
+    <div class="modal-meta" id="m-meta"></div>
+    <div class="modal-note-box" id="m-note" style="display:none"></div>
+    <!-- EDIT PANEL -->
+    <div class="edit-panel" id="edit-panel">
+      <div class="edit-grid">
+        <div class="edit-field" style="grid-column:1/-1;">
+          <label>Card Name</label>
+          <input type="text" id="edit-name" />
+        </div>
+        <div class="edit-field">
+          <label>Set / Set ID</label>
+          <input type="text" id="edit-set" />
+        </div>
+        <div class="edit-field">
+          <label>Game</label>
+          <select id="edit-game">
+            <option value="pokemon">Pokémon</option>
+            <option value="onepiece">One Piece</option>
+            <option value="lorcana">Lorcana</option>
+            <option value="mtg">MTG</option>
+            <option value="yugioh">Yu-Gi-Oh!</option>
+            <option value="digimon">Digimon</option>
+            <option value="other">Other</option>
+          </select>
+        </div>
+        <div class="edit-field" style="grid-column:1/-1;">
+          <label>Notes</label>
+          <textarea id="edit-notes"></textarea>
+        </div>
+      </div>
+      <div class="edit-btns">
+        <button class="btn-save-edit" onclick="saveEdit()">SAVE CHANGES</button>
+        <button class="btn-cancel-edit" onclick="toggleEditPanel()">Cancel</button>
+      </div>
+    </div>
+    <div class="modal-sec">🎯 Buy Target</div>
+    <div class="target-row">
+      <input class="target-input" id="m-target" type="number" placeholder="Set CHF target…" step="0.01" min="0" />
+      <div class="target-bar-wrap"><div class="target-bar" id="m-target-bar" style="width:0%;background:var(--green)"></div></div>
+      <span class="target-label" id="m-target-label">—</span>
+      <button onclick="saveTarget()" style="background:var(--green);border:none;border-radius:2px;padding:6px 12px;color:#000;font-family:'DM Mono',monospace;font-size:10px;cursor:pointer;white-space:nowrap;">SAVE</button>
+    </div>
+    <div class="modal-sec">🤖 AI Investment Analysis</div>
+    <div class="ai-box" id="m-ai"></div>
+    <div class="modal-sec">📡 Live Cardmarket Price</div>
+    <div id="m-cm" class="cm-price-box loading"><span class="cm-icon">⟳</span><div>Fetching live price…</div></div>
+    <div class="modal-sec">📈 Price Trend</div>
+    <div class="modal-chart-wrap"><canvas id="chart-price" height="120"></canvas></div>
+    <div class="modal-sec">Price History</div>
+    <div id="m-prices"></div>
+  </div>
+</div>
+
+<script>
+// ── CONSTANTS ────────────────────────────────────────────────────────────────
+const KEY_URL   = 'holo_url_v1';
+const KEY_CACHE = 'holo_cache_v1';
+const GAMES     = {pokemon:'Pokémon',onepiece:'One Piece',lorcana:'Lorcana',mtg:'MTG',yugioh:'Yu-Gi-Oh!',digimon:'Digimon',other:'Other'};
+
+// ── STATE ────────────────────────────────────────────────────────────────────
+let scriptUrl = localStorage.getItem(KEY_URL) || '';
+let cards     = [];
+let filter    = 'all';
+
+// ── INIT ─────────────────────────────────────────────────────────────────────
+(function(){
+  // Load cached cards immediately so screen isn't blank
+  try{ cards = JSON.parse(localStorage.getItem(KEY_CACHE) || '[]'); }catch{}
+  render();
+
+  if(scriptUrl){
+    document.getElementById('url-input').value = scriptUrl;
+    document.getElementById('setup-banner').style.display = 'none';
+    loadSheet();
+  }
+
+  document.addEventListener('keydown', e=>{
+    if(e.key==='Enter' && document.activeElement.tagName!=='TEXTAREA' && document.activeElement.closest('.add-section')) addCard();
+  });
+})();
+
+// ── CONNECT ──────────────────────────────────────────────────────────────────
+async function connectSheet(){
+  const url = document.getElementById('url-input').value.trim();
+  const msg = document.getElementById('connect-msg');
+  const btn = document.getElementById('btn-connect');
+
+  function showMsg(text, type){ msg.className='connect-msg '+type; msg.textContent=text; msg.style.display='block'; }
+
+  if(!url){ showMsg('⚠ Please paste your Apps Script URL','err'); return; }
+  if(!url.startsWith('https://script.google.com')){ showMsg('⚠ URL must start with https://script.google.com','err'); return; }
+  if(!url.includes('/exec')){ showMsg('⚠ URL must contain /exec — copy the full deployment URL','err'); return; }
+
+  btn.textContent = 'TESTING…'; btn.disabled = true;
+  showMsg('⟳ Connecting to Google Sheets…', 'info');
+  setSyncing('syncing','Testing connection…');
+
+  try{
+    const res  = await fetch(url, { method:'POST', body: JSON.stringify({action:'getAll'}) });
+    const text = await res.text();
+    let data;
+    try{ data = JSON.parse(text); }catch{ throw new Error('Script returned invalid response — make sure the code is saved and deployed correctly'); }
+    if(data.error) throw new Error(data.error);
+
+    scriptUrl = url;
+    localStorage.setItem(KEY_URL, url);
+    cards = data.cards || [];
+    localStorage.setItem(KEY_CACHE, JSON.stringify(cards));
+    document.getElementById('setup-banner').style.display = 'none';
+    setSyncing('synced', 'Connected · '+new Date().toLocaleTimeString());
+    render();
+    toast('Connected to Google Sheets! ✅','success');
+  }catch(err){
+    setSyncing('error','Connection failed');
+    showMsg('❌ '+err.message, 'err');
+    btn.textContent = 'CONNECT'; btn.disabled = false;
+  }
+}
+
+// ── SHEETS API ───────────────────────────────────────────────────────────────
+function setSyncing(state, label){
+  document.getElementById('sync-dot').className = 'sync-dot '+state;
+  document.getElementById('sync-label').textContent = label;
+}
+
+async function sheetPost(payload){
+  const res  = await fetch(scriptUrl, { method:'POST', body: JSON.stringify(payload) });
+  const text = await res.text();
+  return JSON.parse(text);
+}
+
+async function loadSheet(){
+  if(!scriptUrl) return;
+  setSyncing('syncing','Syncing…');
+  try{
+    const data = await sheetPost({action:'getAll'});
+    cards = data.cards || [];
+    localStorage.setItem(KEY_CACHE, JSON.stringify(cards));
+    setSyncing('synced','Synced · '+new Date().toLocaleTimeString());
+    render();
+  }catch{
+    setSyncing('error','Sync failed');
+    try{ cards = JSON.parse(localStorage.getItem(KEY_CACHE)||'[]'); }catch{}
+    render();
+  }
+}
+
+function showSaving(){ document.getElementById('saving-overlay').style.display='flex'; }
+function hideSaving(){ document.getElementById('saving-overlay').style.display='none'; }
+
+async function saveCard(action, payload){
+  if(!scriptUrl){ toast('Connect Google Sheets first','info'); return false; }
+  showSaving();
+  setSyncing('syncing','Saving…');
+  try{
+    const data = await sheetPost({action, ...payload});
+    cards = data.cards || cards;
+    localStorage.setItem(KEY_CACHE, JSON.stringify(cards));
+    setSyncing('synced','Saved · '+new Date().toLocaleTimeString());
+    hideSaving();
+    return true;
+  }catch{
+    hideSaving();
+    setSyncing('error','Save failed');
+    toast('Could not save to Google Sheet','error');
+    return false;
+  }
+}
+
+// ── CURRENCY ─────────────────────────────────────────────────────────────────
+// Free exchange rate API — no key needed
+async function fetchRateToCHF(fromCurrency){
+  if(fromCurrency === 'CHF') return 1;
+  try{
+    const res  = await fetch(`https://api.frankfurter.app/latest?from=${fromCurrency}&to=CHF`);
+    const data = await res.json();
+    return data.rates?.CHF || null;
+  }catch{
+    return null;
+  }
+}
+
+function lastSeen(c){
+  // Last date in priceHistory
+  if(!c.priceHistory?.length) return null;
+  const dates = c.priceHistory.map(e=>String(e.date).split('T')[0]).filter(Boolean).sort();
+  return dates[dates.length-1];
+}
+
+function daysSince(dateStr){
+  if(!dateStr) return 999;
+  const [y,m,d] = dateStr.split('-').map(Number);
+  const then = new Date(y,m-1,d);
+  const now  = new Date();
+  return Math.floor((now-then)/(1000*60*60*24));
+}
+
+function lastSeenHtml(c){
+  const ls = lastSeen(c);
+  if(!ls) return '<span class="last-seen-ok">—</span>';
+  const days = daysSince(ls);
+  if(days===0) return '<span class="last-seen-ok">Today</span>';
+  if(days===1) return '<span class="last-seen-ok">Yesterday</span>';
+  if(days<=7)  return `<span class="last-seen-ok">${days}d ago</span>`;
+  if(days<=30) return `<span class="last-seen-warn">${days}d ago</span>`;
+  return `<span class="last-seen-old">${days}d ago ⚠</span>`;
+}
+
+function fmtCHF(amount){
+  if(amount==null||isNaN(amount)) return '—';
+  return 'CHF ' + parseFloat(amount).toFixed(2);
+}
+
+// ── ADD CARD ─────────────────────────────────────────────────────────────────
+async function addCard(){
+  const name     = document.getElementById('in-name').value.trim();
+  const set      = document.getElementById('in-set').value.trim();
+  const rawPrice = parseFloat(document.getElementById('in-price').value);
+  const currency = document.getElementById('in-currency').value;
+  const game     = document.getElementById('in-game').value;
+  const notes    = document.getElementById('in-notes').value.trim();
+
+  if(!name){ toast('Enter a card name','info'); return; }
+  if(isNaN(rawPrice)||rawPrice<0){ toast('Enter a valid price','info'); return; }
+
+  const btn = document.getElementById('btn-add');
+  btn.disabled=true; btn.textContent='…';
+
+  // Fetch exchange rate at this exact moment and lock it
+  let priceInCHF = rawPrice;
+  let rateUsed   = 1;
+  if(currency !== 'CHF'){
+    const rate = await fetchRateToCHF(currency);
+    if(rate){
+      priceInCHF = rawPrice * rate;
+      rateUsed   = rate;
+    } else {
+      toast(`Could not fetch ${currency}→CHF rate. Price saved as-is.`, 'info');
+    }
+  }
+
+  const today = new Date().toISOString().split('T')[0];
+  const entry = { date:today, price:priceInCHF, originalPrice:rawPrice, originalCurrency:currency, rate:rateUsed };
+  const ex = cards.find(c=>c.name.toLowerCase()===name.toLowerCase());
+  let ok;
+
+  if(ex){
+    ex.mentions++;
+    ex.set  = set  || ex.set;
+    ex.game = game || ex.game;
+    if(notes) ex.notes = notes;
+    ex.priceHistory.push(entry);
+    ok = await saveCard('upsert',{card:ex});
+    if(ok) toast(`+1 mention for "${ex.name}" · ${fmtCHF(priceInCHF)}`, 'success');
+  } else {
+    const card = {id:Date.now().toString(), name, set:set||'—', game, notes, firstSeen:today, mentions:1, priceHistory:[entry]};
+    ok = await saveCard('upsert',{card});
+    if(ok) toast(`"${name}" added · ${fmtCHF(priceInCHF)}`, 'success');
+  }
+
+  btn.disabled=false; btn.textContent='ADD';
+  if(ok){
+    render();
+    ['in-name','in-set','in-price','in-notes'].forEach(id=>document.getElementById(id).value='');
+    document.getElementById('in-name').focus();
+  }
+}
+
+async function quickMention(e,id){
+  e.stopPropagation();
+  const c = cards.find(x=>x.id===id); if(!c) return;
+  c.mentions++;
+  // Reuse last price entry (already in CHF) — rate locked at original add time
+  const today = new Date().toISOString().split('T')[0];
+  const lastEntry = c.priceHistory[c.priceHistory.length-1]||{};
+  c.priceHistory.push({date:today, price:lastP(c), originalPrice:lastEntry.originalPrice||lastP(c), originalCurrency:lastEntry.originalCurrency||'CHF', rate:lastEntry.rate||1});
+  const ok = await saveCard('upsert',{card:c});
+  if(ok){ render(); toast(`+1 → "${c.name}"`, 'success'); }
+}
+
+// ── PIN / STAR ────────────────────────────────────────────────────────────────
+async function togglePin(id){
+  const c = cards.find(x=>x.id===id); if(!c) return;
+  c.pinned = !c.pinned;
+  // Update star visually right away — don't wait for sheet
+  document.querySelectorAll(`[data-star="${id}"]`).forEach(btn=>{
+    btn.textContent = c.pinned ? '★ PIN' : '☆';
+    btn.classList.toggle('starred', c.pinned);
+  });
+  localStorage.setItem(KEY_CACHE, JSON.stringify(cards));
+  render();
+  toast(c.pinned?`⭐ Pinned "${c.name}"`:`Unpinned "${c.name}"`, 'info');
+  // Save to sheet in background
+  saveCard('upsert',{card:c}).catch(()=>{});
+}
+
+// ── TARGET PRICE ──────────────────────────────────────────────────────────────
+let _modalCardId = null;
+async function saveTarget(){
+  const val = parseFloat(document.getElementById('m-target').value);
+  if(!_modalCardId) return;
+  const c = cards.find(x=>x.id===_modalCardId); if(!c) return;
+  c.target = isNaN(val)||val<=0 ? null : val;
+  const ok = await saveCard('upsert',{card:c});
+  if(ok){ render(); toast(c.target?`🎯 Target set: ${fmtCHF(c.target)}`:'Target cleared','info'); }
+}
+
+// ── PORTFOLIO BAR ─────────────────────────────────────────────────────────────
+function updatePortfolio(){
+  if(!cards.length){ document.getElementById('portfolio-bar').style.display='none'; return; }
+  document.getElementById('portfolio-bar').style.display='flex';
+  const total   = cards.reduce((s,c)=>s+lastP(c),0);
+  const avg     = total/cards.length;
+  const pinned  = cards.filter(c=>c.pinned).length;
+  const hot     = cards.filter(c=>signal(c)==='hot'||signal(c)==='buydip').length;
+  document.getElementById('portfolio-val').textContent    = fmtCHF(total);
+  document.getElementById('portfolio-avg').textContent    = fmtCHF(avg);
+  document.getElementById('portfolio-pinned').textContent = pinned;
+  document.getElementById('portfolio-hot').textContent    = hot;
+}
+
+// ── EXPORT CSV ────────────────────────────────────────────────────────────────
+function exportCSV(){
+  if(!cards.length){ toast('No cards to export','info'); return; }
+  const rows = [['Name','Set','Game','Mentions','FirstSeen','LastSeen','LastPrice_CHF','Target_CHF','Signal','Pinned','Notes']];
+  cards.forEach(c=>{
+    rows.push([
+      c.name, c.set, GAMES[c.game]||c.game,
+      c.mentions, c.firstSeen, lastSeen(c)||'',
+      lastP(c).toFixed(2), c.target?c.target.toFixed(2):'',
+      signal(c), c.pinned?'YES':'', c.notes||''
+    ]);
+  });
+  const csv = rows.map(r=>r.map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(',')).join('\n');
+  const blob = new Blob([csv],{type:'text/csv'});
+  const a    = document.createElement('a');
+  a.href     = URL.createObjectURL(blob);
+  a.download = 'holo_tracker_'+new Date().toISOString().split('T')[0]+'.csv';
+  a.click(); URL.revokeObjectURL(a.href);
+  toast('CSV exported ✓','success');
+}
+
+async function removeMention(e,id){
+  e.stopPropagation();
+  const c = cards.find(x=>x.id===id); if(!c) return;
+  if(c.mentions <= 1){
+    toast('Only 1 mention left — delete the card instead if you want to remove it','info');
+    return;
+  }
+  c.mentions--;
+  // Remove the last price history entry too
+  if(c.priceHistory.length > 1) c.priceHistory.pop();
+  const ok = await saveCard('upsert',{card:c});
+  if(ok){ render(); toast(`−1 mention → "${c.name}"`, 'info'); }
+}
+
+async function delCard(e,id){
+  e.stopPropagation();
+  if(!confirm('Remove this card?')) return;
+  const ok = await saveCard('delete',{id});
+  if(ok){ render(); toast('Removed','info'); }
+}
+
+// ── SIGNAL (upgraded: mentions + price action + dip detection) ───────────────
+function priceAnalysis(c){
+  const p = c.priceHistory.map(x=>x.price);
+  if(p.length < 2) return {trend:'unknown', growth:0, dipThenFlat:false};
+  const first = p[0], last = p[p.length-1];
+  const growth = (last - first) / first;
+  // Detect dip then flatten: look at mid vs peak vs end
+  let dipThenFlat = false;
+  if(p.length >= 3){
+    const peak     = Math.max(...p);
+    const peakIdx  = p.lastIndexOf(peak);
+    const afterPeak = p.slice(peakIdx);
+    if(afterPeak.length >= 2){
+      const dropFromPeak = (afterPeak[afterPeak.length-1] - peak) / peak;
+      // Check if last 2 prices are within 5% of each other (flattening)
+      const last2 = p.slice(-2);
+      const recentChange = Math.abs(last2[1]-last2[0])/last2[0];
+      // Dip = dropped >10% from peak, flatten = recent change <5%
+      if(dropFromPeak < -0.10 && recentChange < 0.05) dipThenFlat = true;
+    }
+  }
+  const trend = growth > 0.10 ? 'rising' : growth < -0.10 ? 'falling' : 'flat';
+  return {trend, growth, dipThenFlat};
+}
+
+function signal(c){
+  const p    = c.priceHistory.map(x=>x.price);
+  const pa   = priceAnalysis(c);
+  const avg  = p.length ? p.reduce((a,b)=>a+b,0)/p.length : 0;
+
+  // BUY DIP: dip then flatten — regardless of mentions, this is the entry signal
+  if(pa.dipThenFlat && c.mentions >= 2) return 'buydip';
+
+  let s = 0;
+  // Mentions score (primary driver)
+  if(c.mentions>=6)s+=4; else if(c.mentions>=4)s+=3; else if(c.mentions>=2)s+=2; else if(c.mentions>=1)s+=1;
+  // Price action score
+  if(pa.trend==='rising')s+=3; else if(pa.trend==='flat')s+=1; else if(pa.trend==='falling')s-=2;
+  // Price level
+  if(avg>=100)s+=2; else if(avg>=30)s+=1;
+
+  if(s>=6) return 'hot';
+  if(s>=4) return 'warm';
+  if(s>=2) return 'watch';
+  return 'cold';
+}
+
+function sigLabel(s){ return{hot:'🔥 HOT',warm:'⚡ WARM',watch:'👁 WATCH',cold:'— COLD',buydip:'🛒 BUY DIP'}[s]||'—'; }
+function lastP(c){ const h=c.priceHistory; return h[h.length-1]?.price||0; }
+function fmtDate(d){
+  if(!d) return '—';
+  // Handle both date strings and already-formatted dates
+  const s = String(d).trim();
+  // If it's already a readable date string (not YYYY-MM-DD), return as-is
+  if(!/^\d{4}-\d{2}-\d{2}/.test(s)) return s;
+  const [y,m,day] = s.split('T')[0].split('-').map(Number);
+  return new Date(y, m-1, day).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+}
+function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function tagHtml(g){ return `<span class="tag tag-${g||'other'}">${esc(GAMES[g]||g||'Other')}</span>`; }
+function badgeHtml(s){ return `<span class="badge ${s}"><span class="bdot"></span>${sigLabel(s)}</span>`; }
+
+// ── RENDER ───────────────────────────────────────────────────────────────────
+function setFilter(f,btn){
+  filter=f;
+  document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active'); render();
+}
+
+function getFiltered(){
+  const q   = document.getElementById('in-search').value.toLowerCase();
+  const sort= document.getElementById('in-sort').value;
+  const gf  = document.getElementById('in-game-filter').value;
+  let f = cards.filter(c=>
+    (filter==='all'||signal(c)===filter) &&
+    (gf==='all'||c.game===gf) &&
+    (c.name.toLowerCase().includes(q)||(c.notes||'').toLowerCase().includes(q)||c.set.toLowerCase().includes(q))
+  );
+  f.sort((a,b)=>{
+    // Pinned always first
+    if(a.pinned&&!b.pinned) return -1;
+    if(!a.pinned&&b.pinned) return 1;
+    if(sort==='mentions') return b.mentions-a.mentions;
+    if(sort==='price-hi') return lastP(b)-lastP(a);
+    if(sort==='price-lo') return lastP(a)-lastP(b);
+    if(sort==='az')       return a.name.localeCompare(b.name);
+    if(sort==='last-seen'){
+      const da=lastSeen(a)||'0000', db=lastSeen(b)||'0000';
+      return db.localeCompare(da);
+    }
+    return b.id-a.id;
+  });
+  return f;
+}
+
+function render(){
+  const rows = getFiltered();
+  document.getElementById('empty').style.display = rows.length?'none':'block';
+
+  // Desktop
+  const tb = document.getElementById('tbody');
+  tb.innerHTML = '';
+  rows.forEach((c,i)=>{
+    const s=signal(c), lp=lastP(c), dots=Math.min(c.mentions,5);
+    const tr=document.createElement('tr');
+    tr.className='card-row'; tr.style.animationDelay=(i*0.03)+'s';
+    if(c.pinned) tr.classList.add('pinned');
+    tr.innerHTML=`
+      <td><button class="btn-star${c.pinned?' starred':''}" data-star="${c.id}">${c.pinned?'★':'☆'}</button></td>
+      <td>
+        <div style="display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;">
+          <span class="card-name">${esc(c.name)}</span>
+          <span class="card-set">${esc(c.set)}</span>
+        </div>
+        ${c.notes?`<div class="card-note-preview">📝 ${esc(c.notes)}</div>`:''}
+      </td>
+      <td>${tagHtml(c.game)}</td>
+      <td>
+        <span class="price-val">${fmtCHF(lp)}</span>
+        ${c.target?`<span style="font-family:'DM Mono',monospace;font-size:9px;margin-left:6px;color:${lp<=c.target?'var(--green)':'var(--text-dimmer)'}">🎯${fmtCHF(c.target)}</span>`:''}
+      </td>
+      <td><div class="mentions-wrap"><span class="mentions-num">${c.mentions}</span><div class="mdots">${c.mentions<=5?Array.from({length:c.mentions},()=>'<div class="mdot on"></div>').join('')+Array.from({length:5-c.mentions},()=>'<div class="mdot"></div>').join(''):Array.from({length:5},()=>'<div class="mdot on" style="background:var(--hot)"></div>').join('')+"<span style=\"font-family:DM Mono,monospace;font-size:9px;color:var(--hot);margin-left:3px\">+${c.mentions-5}</span>"}</div></div></td>
+      <td>${lastSeenHtml(c)}</td>
+      <td>${badgeHtml(s)}${c.target&&lp<=c.target?' <span style="color:var(--green);font-size:10px">✅</span>':''}</td>
+      <td><div class="row-btns"><button class="btn-xs btn-mention" data-id="${c.id}">+1</button><button class="btn-xs btn-unmention" data-unmention="${c.id}">−1</button><button class="btn-xs btn-del" data-del="${c.id}">✕</button></div></td>`;
+    tr.querySelector('[data-star]').addEventListener('click', e=>{ e.stopPropagation(); togglePin(c.id); });
+    tr.querySelector('[data-id]').addEventListener('click', e=>{ e.stopPropagation(); quickMention(e, c.id); });
+    tr.querySelector('[data-unmention]').addEventListener('click', e=>{ e.stopPropagation(); removeMention(e, c.id); });
+    tr.querySelector('[data-del]').addEventListener('click', e=>{ e.stopPropagation(); delCard(e, c.id); });
+    tr.addEventListener('click', ()=>openModal(c.id));
+    tb.appendChild(tr);
+  });
+
+  // Mobile
+  const mob=document.getElementById('mob-wrap');
+  mob.innerHTML='';
+  rows.forEach((c,i)=>{
+    const s=signal(c),lp=lastP(c);
+    const div=document.createElement('div');
+    div.className='mob-card'; div.style.animationDelay=(i*0.03)+'s';
+    div.innerHTML=`
+      <div class="mob-top"><div><div class="mob-name">${esc(c.name)}</div><div class="mob-set">${esc(c.set)}</div>${c.notes?`<div class="mob-note">📝 ${esc(c.notes)}</div>`:''}</div>${badgeHtml(s)}</div>
+      <div class="mob-mid"><span class="mob-price">${fmtCHF(lp)}</span>${tagHtml(c.game)}<span class="mob-info">${c.mentions} mention${c.mentions!==1?'s':''}</span><span class="mob-info">${fmtDate(c.firstSeen)}</span></div>
+      <div class="mob-bot"><div style="display:flex;gap:8px"><button class="btn-xs btn-mention" onclick="quickMention(event,'${c.id}')">+1</button><button class="btn-xs btn-unmention" onclick="removeMention(event,'${c.id}')">−1</button><button class="btn-xs btn-del" onclick="delCard(event,'${c.id}')">✕</button></div></div>`;
+    div.onclick=e=>{if(!e.target.closest('button'))openModal(c.id);};
+    mob.appendChild(div);
+  });
+
+  document.getElementById('stat-total').textContent    = cards.length;
+  document.getElementById('stat-hot').textContent      = cards.filter(c=>signal(c)==='hot').length;
+  document.getElementById('stat-mentions').textContent = cards.reduce((s,c)=>s+c.mentions,0);
+
+  updatePortfolio();
+  const tableWrap=document.querySelector('.desk-table');
+  const gridWrap=document.getElementById('card-grid');
+  const mobWrap=document.getElementById('mob-wrap');
+  if(viewMode==='grid'){
+    if(tableWrap) tableWrap.style.display='none';
+    if(mobWrap) mobWrap.style.display='none';
+    if(gridWrap) gridWrap.style.display='grid';
+    renderGrid();
+  } else {
+    if(tableWrap) tableWrap.style.display='block';
+    if(mobWrap) mobWrap.style.display='none';
+    if(gridWrap) gridWrap.style.display='none';
+  }
+  setTimeout(()=>renderCharts(rows), 50);
+}
+
+// ── CHARTS ───────────────────────────────────────────────────────────────────
+let chartMentions=null, chartSignals=null, chartPrice=null;
+
+function renderCharts(rows){
+  if(!rows.length){ document.getElementById('charts-row').style.display='none'; return; }
+  document.getElementById('charts-row').style.display='grid';
+
+  const sigColors = {hot:'#ff6b35',warm:'#f5c842',watch:'#4d9fff',cold:'#3d3d5c',buydip:'#39d98a'};
+  const tickStyle = {color:'#7a7a9a',font:{family:'DM Mono',size:9}};
+
+  // Bar chart — top 6 by mentions
+  const top = [...cards].sort((a,b)=>b.mentions-a.mentions).slice(0,6);
+  const canv1 = document.getElementById('chart-mentions');
+  if(!canv1) return;
+  if(chartMentions){ try{chartMentions.destroy();}catch{} chartMentions=null; }
+  chartMentions = new Chart(canv1.getContext('2d'),{
+    type:'bar',
+    data:{
+      labels: top.map(c=>c.name.length>12?c.name.slice(0,12)+'…':c.name),
+      datasets:[{
+        data: top.map(c=>c.mentions),
+        backgroundColor: top.map(c=>sigColors[signal(c)]+'aa'),
+        borderColor: top.map(c=>sigColors[signal(c)]),
+        borderWidth:1, borderRadius:2
+      }]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{legend:{display:false}, tooltip:{callbacks:{label:ctx=>`${ctx.raw} mentions`}}},
+      scales:{
+        x:{ticks:{...tickStyle,maxRotation:30,minRotation:0}, grid:{color:'rgba(255,255,255,0.03)'}},
+        y:{ticks:{...tickStyle,stepSize:1}, grid:{color:'rgba(255,255,255,0.04)'}, beginAtZero:true}
+      }
+    }
+  });
+
+  // Donut chart — signal distribution, legend inside bottom
+  const counts={hot:0,warm:0,watch:0,cold:0,buydip:0};
+  cards.forEach(c=>{ const s=signal(c); counts[s]=(counts[s]||0)+1; });
+  const allSigs={hot:{l:'🔥',c:'#ff6b35'},warm:{l:'⚡',c:'#f5c842'},watch:{l:'👁',c:'#4d9fff'},cold:{l:'❄',c:'#3d3d5c'},buydip:{l:'🛒',c:'#39d98a'}};
+  const labels=[], data=[], colors=[];
+  Object.entries(allSigs).forEach(([k,v])=>{ if(counts[k]>0){labels.push(`${v.l} ${k} (${counts[k]})`);data.push(counts[k]);colors.push(v.c);} });
+
+  const canv2 = document.getElementById('chart-signals');
+  if(!canv2) return;
+  if(chartSignals){ try{chartSignals.destroy();}catch{} chartSignals=null; }
+  chartSignals = new Chart(canv2.getContext('2d'),{
+    type:'doughnut',
+    data:{ labels, datasets:[{data, backgroundColor:colors.map(c=>c+'bb'), borderColor:colors, borderWidth:1, hoverOffset:4}] },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{
+        legend:{
+          display:true, position:'bottom',
+          labels:{color:'#7a7a9a',font:{family:'DM Mono',size:9},boxWidth:8,padding:6}
+        },
+        tooltip:{callbacks:{label:ctx=>`${ctx.label}`}}
+      },
+      cutout:'60%'
+    }
+  });
+}
+
+function renderPriceChart(c){
+  const ph = c.priceHistory;
+  const wrap = document.querySelector('.modal-chart-wrap');
+  // Destroy any existing chart first
+  if(chartPrice){ try{chartPrice.destroy();}catch{} chartPrice=null; }
+  if(ph.length < 2){ wrap.style.display='none'; return; }
+  wrap.style.display='block';
+  // Replace canvas element to avoid Chart.js reuse issues
+  const oldCanvas = document.getElementById('chart-price');
+  const newCanvas = document.createElement('canvas');
+  newCanvas.id='chart-price'; newCanvas.height=120;
+  oldCanvas.parentNode.replaceChild(newCanvas, oldCanvas);
+  const ctx = newCanvas.getContext('2d');
+  const labels = ph.map(e=>{ const[y,m,d]=String(e.date).split('T')[0].split('-').map(Number); return new Date(y,m-1,d).toLocaleDateString('en-US',{month:'short',day:'numeric'}); });
+  const prices = ph.map(e=>e.price);
+  const pa = priceAnalysis(c);
+  const lineColor = pa.trend==='rising'?'#39d98a':pa.trend==='falling'?'#ff4d6d':'#4d9fff';
+  chartPrice = new Chart(ctx,{
+    type:'line',
+    data:{ labels, datasets:[{data:prices, borderColor:lineColor, backgroundColor:lineColor+'22', fill:true, tension:0.4, pointRadius:4, pointBackgroundColor:lineColor, borderWidth:2}] },
+    options:{responsive:true,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>`€${ctx.raw.toFixed(2)}`}}},scales:{x:{ticks:{color:'#7a7a9a',font:{family:'DM Mono',size:9}},grid:{color:'rgba(255,255,255,0.03)'}},y:{ticks:{color:'#7a7a9a',font:{family:'DM Mono',size:9},callback:v=>'€'+v},grid:{color:'rgba(255,255,255,0.04)'}}}}
+  });
+}
+
+// ── LIVE PRICE — disabled (CORS blocks local API calls) ──────────────────────
+async function fetchCMPrice(card){
+  const box = document.getElementById('m-cm');
+  if(!box) return;
+  // Hide the box — API calls blocked locally, user uses the Cardmarket link instead
+  box.style.display='none';
+  return;
+  try{
+    // Extract card number from set field e.g. "MEP 024" -> "24"
+    const numMatch = (card.set||'').match(/\b(\d{2,4})\b/);
+    const cardNum  = numMatch ? parseInt(numMatch[1],10).toString() : '';
+
+    // Use saved TCGdex ID if available, otherwise search by name + number
+    let tcgdexId = card.tcgdexId || null;
+    if(!tcgdexId){
+      const searchUrl = cardNum
+        ? `https://api.tcgdex.net/v2/en/cards?name=${encodeURIComponent(card.name)}&localId=${cardNum}&pagination[itemsPerPage]=5`
+        : `https://api.tcgdex.net/v2/en/cards?name=${encodeURIComponent(card.name)}&pagination[itemsPerPage]=5`;
+      const sRes = await fetch(searchUrl);
+      if(!sRes.ok) throw new Error('search '+sRes.status);
+      const results = await sRes.json();
+      if(!Array.isArray(results)||!results.length) throw new Error('not found');
+      const match = (cardNum && results.find(x=>String(x.localId)===cardNum)) || results[0];
+      if(!match?.id) throw new Error('no match');
+      tcgdexId = match.id;
+    }
+
+    // Fetch full card details for prices using confirmed ID
+    const detailRes = await fetch(`https://api.tcgdex.net/v2/en/cards/${tcgdexId}`);
+    if(!detailRes.ok) throw new Error('detail '+detailRes.status);
+    const detail = await detailRes.json();
+
+    // Extract Cardmarket prices — TCGdex uses different field names
+    const cm = detail.cardmarket || detail.markets?.cardmarket;
+    const live  = cm?.prices?.averageSellPrice ?? cm?.prices?.avg1 ?? cm?.prices?.trendPrice ?? null;
+    const avg7  = cm?.prices?.avg7  ?? null;
+    const avg30 = cm?.prices?.avg30 ?? null;
+
+    if(!live) throw new Error('no cm price');
+
+    const myPrice = lastP(card);
+    const diff    = myPrice>0?((live-myPrice)/myPrice)*100:0;
+    const pa      = priceAnalysis(card);
+
+    let cls,icon,headline,det;
+    if(pa.dipThenFlat){
+      cls='buydip'; icon='🛒';
+      headline='BUY DIP — price dropped then stabilized';
+      det=`Live: €${live.toFixed(2)} · Logged: ${fmtCHF(myPrice)} · Classic entry`;
+    } else if(diff>10){
+      cls='up'; icon='📈';
+      headline=`+${diff.toFixed(1)}% since you logged it`;
+      det=`Live: €${live.toFixed(2)} · Logged: ${fmtCHF(myPrice)} · Rising`;
+    } else if(diff<-10){
+      cls='down'; icon='📉';
+      headline=`${diff.toFixed(1)}% — price dipped`;
+      det=`Live: €${live.toFixed(2)} · Logged: ${fmtCHF(myPrice)} · Dipping`;
+    } else {
+      cls='flat'; icon='💹';
+      headline=`Stable — €${live.toFixed(2)} on Cardmarket`;
+      det=`Within ${Math.abs(diff).toFixed(1)}% of your logged price`;
+    }
+
+    const extras = [
+      avg7  ? `7d avg: €${parseFloat(avg7).toFixed(2)}`  : null,
+      avg30 ? `30d avg: €${parseFloat(avg30).toFixed(2)}` : null,
+    ].filter(Boolean).join('  ·  ');
+
+    const spark = (avg7&&avg30) ? renderMiniHistory(live,avg7,avg30) : '';
+
+    box.className='cm-price-box '+cls;
+    box.innerHTML=`<span class="cm-icon">${icon}</span><div>
+      <span class="cm-strong">${headline}</span>${det}
+      ${extras?`<br><span style="opacity:0.65;font-size:10px">${extras}</span>`:''}
+      ${spark}
+    </div>`;
+  }catch(err){
+    box.style.display='none';
+  }
+}
+
+
+
+
+// ── NAME DROPDOWN + CONFIRM DIALOG ───────────────────────────────────────────
+let _confirmCallback = null;
+
+let _ddOpen = false;
+
+function onNameInput(){
+  const val = document.getElementById('in-name').value.trim();
+  const dd  = document.getElementById('name-dropdown');
+  if(!val){ dd.style.display='none'; _ddOpen=false; return; }
+
+  const matches = cards.filter(c=>c.name.toLowerCase().includes(val.toLowerCase())).slice(0,6);
+  if(!matches.length){ dd.style.display='none'; _ddOpen=false; return; }
+
+  const sigColors = {hot:'#ff6b35',warm:'#f5c842',watch:'#4d9fff',cold:'#7a7a9a',buydip:'#39d98a'};
+  _ddOpen = true;
+  dd.style.display='block';
+  dd.innerHTML='';
+
+  matches.forEach(c=>{
+    const s=signal(c), lp=lastP(c);
+    const item = document.createElement('div');
+    item.className = 'nd-item';
+    item.innerHTML = `<div>
+        <div class="nd-name">${esc(c.name)}</div>
+        <div class="nd-meta">${esc(c.set)} · ${c.mentions} mention${c.mentions!==1?'s':''} · €${lp.toFixed(2)}</div>
+      </div>
+      <span class="nd-badge" style="background:${sigColors[s]}22;border:1px solid ${sigColors[s]}66;color:${sigColors[s]}">${sigLabel(s)}</span>`;
+    // Use click not mousedown — but stop it from bubbling to document
+    item.addEventListener('click', e=>{
+      e.stopPropagation();
+      selectExistingCard(c.id);
+    });
+    dd.appendChild(item);
+  });
+}
+
+function onNameKey(e){
+  if(e.key==='Escape'){ document.getElementById('name-dropdown').style.display='none'; _ddOpen=false; }
+}
+
+document.addEventListener('mousedown', e=>{
+  if(_ddOpen && !e.target.closest('#name-dropdown') && !e.target.closest('#in-name')){
+    document.getElementById('name-dropdown').style.display='none';
+    _ddOpen=false;
+  }
+});
+
+function selectExistingCard(id){
+  const c = cards.find(x=>x.id===id); if(!c) return;
+  document.getElementById('name-dropdown').style.display='none';
+  document.getElementById('in-name').value = c.name;
+
+  // Show confirm dialog
+  const lp = lastP(c);
+  const pa = priceAnalysis(c);
+  document.getElementById('confirm-title').textContent = c.name;
+  document.getElementById('confirm-meta').innerHTML =
+    `Game: <b style="color:#e8e8f0">${GAMES[c.game]||'TCG'}</b> &nbsp;·&nbsp; Set: <b style="color:#e8e8f0">${c.set}</b><br>` +
+    `Mentions: <b style="color:#e8e8f0">${c.mentions}</b> &nbsp;·&nbsp; Last price: <b style="color:#f5c842">${fmtCHF(lp)}</b><br>` +
+    `Signal: <b style="color:#e8e8f0">${sigLabel(signal(c))}</b> &nbsp;·&nbsp; Trend: <b style="color:#e8e8f0">${pa.trend}</b><br><br>` +
+    `New price seen today (optional):<br>` +
+    `<div style="display:flex;gap:6px;margin-top:6px;">` +
+    `<input id="confirm-price" type="number" placeholder="${lp.toFixed(2)}" step="0.01" min="0" style="flex:1;background:#111118;border:1px solid #2a2a3a;border-radius:2px;padding:7px 10px;color:#e8e8f0;font-family:'DM Mono',monospace;font-size:12px;outline:none;">` +
+    `<select id="confirm-currency" style="width:68px;background:#111118;border:1px solid #2a2a3a;border-radius:2px;padding:7px 8px;color:#e8e8f0;font-family:'DM Mono',monospace;font-size:11px;outline:none;">` +
+    `<option value="CHF">CHF</option><option value="EUR">EUR</option><option value="USD">USD</option></select></div>` +
+    `<div style="margin-top:8px;font-family:'DM Mono',monospace;font-size:10px;color:#7a7a9a;margin-bottom:4px;">YouTube channel (optional)</div>` +
+    `<input id="confirm-source" type="text" placeholder="e.g. TCC Collector, PokeRev…" style="width:100%;background:#111118;border:1px solid #2a2a3a;border-radius:2px;padding:7px 10px;color:#e8e8f0;font-family:'DM Mono',monospace;font-size:12px;outline:none;">`;
+
+  const btns = document.getElementById('confirm-btns');
+  btns.innerHTML = `
+    <button class="confirm-btn primary" id="cb-mention">+1 MENTION</button>
+    <button class="confirm-btn secondary" id="cb-view">VIEW CARD</button>
+    <button class="confirm-btn secondary" id="cb-cancel">CANCEL</button>`;
+  document.getElementById('cb-mention').addEventListener('click', ()=>confirmAddMention(id));
+  document.getElementById('cb-view').addEventListener('click', ()=>confirmViewCard(id));
+  document.getElementById('cb-cancel').addEventListener('click', ()=>closeConfirm());
+
+  document.getElementById('confirm-overlay').style.display='flex';
+}
+
+async function confirmAddMention(id){
+  // Read price from confirm dialog before closing
+  const rawPrice  = parseFloat(document.getElementById('confirm-price')?.value);
+  const currency  = document.getElementById('confirm-currency')?.value || 'CHF';
+  const source    = document.getElementById('confirm-source')?.value.trim() || '';
+  const notes     = document.getElementById('in-notes').value.trim();
+  closeConfirm();
+
+  const c = cards.find(x=>x.id===id); if(!c) return;
+  c.mentions++;
+
+  const today = new Date().toISOString().split('T')[0];
+  let priceInCHF = lastP(c), rateUsed = 1, origPrice = lastP(c), origCurrency = 'CHF';
+
+  if(!isNaN(rawPrice) && rawPrice > 0){
+    origPrice = rawPrice; origCurrency = currency;
+    if(currency !== 'CHF'){
+      const rate = await fetchRateToCHF(currency);
+      if(rate){ priceInCHF = rawPrice * rate; rateUsed = rate; }
+      else { priceInCHF = rawPrice; }
+    } else {
+      priceInCHF = rawPrice;
+    }
+  }
+
+  c.priceHistory.push({date:today, price:priceInCHF, originalPrice:origPrice, originalCurrency:origCurrency, rate:rateUsed, source});
+  if(notes) c.notes = notes;
+  const ok = await saveCard('upsert',{card:c});
+  if(ok){
+    render();
+    toast(`+1 mention → "${c.name}" · ${fmtCHF(priceInCHF)}`, 'success');
+    ['in-name','in-set','in-price','in-notes'].forEach(id=>document.getElementById(id).value='');
+  }
+}
+
+function confirmViewCard(id){
+  closeConfirm();
+  openModal(id);
+}
+
+function closeConfirm(){
+  document.getElementById('confirm-overlay').style.display='none';
+}
+
+// ── MODAL ────────────────────────────────────────────────────────────────────
+async function openModal(id){
+  const c=cards.find(x=>x.id===id); if(!c) return;
+  _modalCardId = id;
+  const days = daysSince(lastSeen(c)||c.firstSeen);
+  document.getElementById('m-name').textContent = c.name;
+  document.getElementById('m-meta').textContent = `${GAMES[c.game]||'TCG'}  ·  Set: ${c.set}  ·  ${c.mentions} mention${c.mentions!==1?'s':''}  ·  Last seen: ${days===0?'today':days+'d ago'}`;
+  const ne=document.getElementById('m-note');
+  if(c.notes){ ne.textContent='📝 '+c.notes; ne.style.display='block'; } else ne.style.display='none';
+  // Target price
+  document.getElementById('m-target').value = c.target||'';
+  const lp = lastP(c);
+  if(c.target&&c.target>0){
+    const pct = Math.min(100,(lp/c.target)*100);
+    document.getElementById('m-target-bar').style.width=pct+'%';
+    document.getElementById('m-target-bar').style.background=lp<=c.target?'var(--green)':'var(--gold)';
+    const diff=((lp-c.target)/c.target*100).toFixed(1);
+    document.getElementById('m-target-label').innerHTML=lp<=c.target
+      ?`<span class="target-hit">✅ AT TARGET! ${fmtCHF(lp)} ≤ ${fmtCHF(c.target)}</span>`
+      :`${fmtCHF(c.target)} target · ${diff>0?'+':''}${diff}% away`;
+  } else {
+    document.getElementById('m-target-bar').style.width='0%';
+    document.getElementById('m-target-label').textContent='No target set';
+  }
+  document.getElementById('modal').style.display='flex';
+  // Set Cardmarket search link for this card
+  const cmLink = document.getElementById('btn-cm-link');
+  if(cmLink) cmLink.href = 'https://www.cardmarket.com/en/Pokemon/Products/Search?searchString='+encodeURIComponent(c.name);
+  document.getElementById('m-cm').style.display='flex';
+  // Render price chart after modal is fully visible
+  setTimeout(()=>renderPriceChart(c), 150);
+  // Fetch live CardMarket price (runs independently — won't break anything if it fails)
+  fetchCMPrice(c).catch(()=>{});
+
+  const ai=document.getElementById('m-ai');
+  ai.innerHTML='<div class="ai-load"><span></span><span></span><span></span>&nbsp;Analyzing…</div>';
+  try{
+    const p=c.priceHistory.map(x=>x.price);
+    const avg=(p.reduce((a,b)=>a+b,0)/p.length).toFixed(2);
+    const growth=p.length>1?(((p[p.length-1]-p[0])/p[0])*100).toFixed(1):0;
+    const prompt=`You are a TCG investment analyst. Give a sharp 2-3 sentence opinion in under 80 words — buy, hold, or avoid?
+Card: "${c.name}", Game: ${GAMES[c.game]||'TCG'}, Set: ${c.set}, Mentions: ${c.mentions}, Avg price: $${avg}, Price change: ${growth}%, Signal: ${signal(c).toUpperCase()}${c.notes?', Notes: '+c.notes:''}.`;
+    const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,messages:[{role:'user',content:prompt}]})});
+    const data=await res.json();
+    ai.textContent=data.content?.find(b=>b.type==='text')?.text||'No analysis.';
+  }catch{
+    const fb={hot:'High buzz and rising prices — strong buy signal.',warm:'Gaining traction. Consider a small position.',watch:'Early interest. Wait for more data.',cold:'Low activity. Hold off for now.'};
+    ai.textContent=fb[signal(c)];
+  }
+}
+function closeModal(){
+  document.getElementById('modal').style.display='none';
+  document.getElementById('edit-panel').classList.remove('open');
+  document.getElementById('card-picker').style.display='none';
+}
+
+
+
+function toggleEditPanel(){
+  const panel = document.getElementById('edit-panel');
+  const isOpen = panel.classList.toggle('open');
+  document.getElementById('btn-edit-card').textContent = isOpen ? '✕ Cancel' : '✏ Edit';
+  if(isOpen && _modalCardId){
+    const c = cards.find(x=>x.id===_modalCardId); if(!c) return;
+    document.getElementById('edit-name').value  = c.name  || '';
+    document.getElementById('edit-set').value   = c.set   || '';
+    document.getElementById('edit-notes').value = c.notes || '';
+    const gameSelect = document.getElementById('edit-game');
+    gameSelect.value = c.game || 'pokemon';
+  }
+}
+
+async function saveEdit(){
+  if(!_modalCardId) return;
+  const c = cards.find(x=>x.id===_modalCardId); if(!c) return;
+  const newName  = document.getElementById('edit-name').value.trim();
+  const newSet   = document.getElementById('edit-set').value.trim();
+  const newGame  = document.getElementById('edit-game').value;
+  const newNotes = document.getElementById('edit-notes').value.trim();
+  if(!newName){ toast('Name cannot be empty','info'); return; }
+  c.name  = newName;
+  c.set   = newSet  || c.set;
+  c.game  = newGame || c.game;
+  c.notes = newNotes;
+  const ok = await saveCard('upsert',{card:c});
+  if(ok){
+    // Refresh modal header
+    document.getElementById('m-name').textContent = c.name;
+    const noteEl = document.getElementById('m-note');
+    if(c.notes){ noteEl.textContent='📝 '+c.notes; noteEl.style.display='block'; }
+    else noteEl.style.display='none';
+    document.getElementById('edit-panel').classList.remove('open');
+    document.getElementById('btn-edit-card').textContent = '✏ Edit';
+    render();
+    toast('Card updated ✓','success');
+  }
+}
+
+// ── TOAST ────────────────────────────────────────────────────────────────────
+
+// ── VIEW MODE ─────────────────────────────────────────────────────────────────
+let viewMode = localStorage.getItem('holo_view') || 'list';
+
+function setView(mode, btn){
+  viewMode = mode;
+  localStorage.setItem('holo_view', mode);
+  document.querySelectorAll('.vbtn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  render();
+}
+
+function getCardImage(c){
+  if(c.savedImage) return c.savedImage;
+  const setMap={'SV1':'sv1','SV2':'sv2','SV3':'sv3','SV3PT5':'sv3pt5','SV4':'sv4','SV4PT5':'sv4pt5','SV5':'sv5','SV6':'sv6','SV6PT5':'sv6pt5','SV7':'sv7','SV8':'sv8','SV8PT5':'sv8pt5','SVP':'svp','MEP':'sv8pt5','SWSH1':'swsh1','SWSH2':'swsh2','SWSH3':'swsh3','SWSH4':'swsh4','SWSH5':'swsh5','SWSH6':'swsh6','SWSH7':'swsh7','SWSH8':'swsh8','SWSH9':'swsh9','SWSH10':'swsh10','SWSH11':'swsh11','SWSH12':'swsh12','SSH':'swsh1','VIV':'swsh4','BST':'swsh5','CRE':'swsh6','EVS':'swsh7','FST':'swsh8','BRS':'swsh9','ASR':'swsh10','LOR':'swsh11','CRZ':'swsh12pt5','PGO':'pgo','CEL':'cel25'};
+  const parts = (c.set||'').trim().toUpperCase().split(/[\s·\/]+/);
+  const setCode = parts.find(p=>p && isNaN(p)) || '';
+  const numPart = parts.find(p=>/^\d+$/.test(p));
+  const cardNum = numPart ? parseInt(numPart,10) : null;
+  const tcgId = setMap[setCode];
+  if(tcgId && cardNum) return 'https://images.pokemontcg.io/'+tcgId+'/'+cardNum+'.png';
+  return null;
+}
+
+function renderGrid(){
+  const rows = getFiltered();
+  const wrap = document.getElementById('card-grid');
+  wrap.innerHTML = '';
+  document.getElementById('empty').style.display = rows.length?'none':'block';
+  rows.forEach((c,i)=>{
+    const s=signal(c), lp=lastP(c);
+    const img = c.game==='pokemon' ? getCardImage(c) : null;
+    const card = document.createElement('div');
+    card.className = 'cg-card'+(c.pinned?' pinned':'');
+    card.style.animationDelay = (i*0.02)+'s';
+    const onErr = 'this.style.display=\"none\";this.nextElementSibling.style.display=\"flex\"';
+    const imgHtml = img
+      ? '<img class="cg-img" src="'+img+'" alt="'+esc(c.name)+'" loading="lazy" onerror="'+onErr+'"/><div class="cg-placeholder" style="display:none;">🃏<span>'+esc(c.name)+'</span></div>'
+      : '<div class="cg-placeholder">🃏<span>'+esc(c.name)+'</span></div>';
+    card.innerHTML =
+      '<div class="cg-img-wrap">'+imgHtml+
+      '<div class="cg-badge-pos">'+badgeHtml(s)+'</div>'+
+      '<button class="cg-star-pos'+(c.pinned?' starred':'')+'" data-star="'+c.id+'">'+(c.pinned?'★':'☆')+'</button>'+
+      '</div>'+
+      '<div class="cg-body">'+
+      '<div class="cg-name">'+esc(c.name)+'</div>'+
+      '<div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap;">'+tagHtml(c.game)+'<span class="cg-set">'+esc(c.set)+'</span></div>'+
+      '<div class="cg-bottom"><span class="cg-price">'+fmtCHF(lp)+'</span><span class="cg-mentions">'+c.mentions+'✕</span></div>'+
+      '<div class="cg-lastseen">'+lastSeenHtml(c)+'</div>'+
+      '<div class="cg-actions">'+
+      '<button class="cga p" data-id="'+c.id+'">+1</button>'+
+      '<button class="cga u" data-un="'+c.id+'">−1</button>'+
+      '<button class="cga d" data-del="'+c.id+'">✕</button>'+
+      '</div></div>';
+    card.querySelector('[data-star]').addEventListener('click',e=>{e.stopPropagation();togglePin(c.id);});
+    card.querySelector('[data-id]').addEventListener('click',e=>{e.stopPropagation();quickMention(e,c.id);});
+    card.querySelector('[data-un]').addEventListener('click',e=>{e.stopPropagation();removeMention(e,c.id);});
+    card.querySelector('[data-del]').addEventListener('click',e=>{e.stopPropagation();delCard(e,c.id);});
+    card.addEventListener('click',()=>openModal(c.id));
+    wrap.appendChild(card);
+  });
+}
+
+// ── TAB SWITCHING ─────────────────────────────────────────────────────────────
+function switchTab(tab, btn){
+  document.querySelectorAll('.tab-content').forEach(el=>el.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(el=>el.classList.remove('active'));
+  document.getElementById('tab-'+tab).classList.add('active');
+  btn.classList.add('active');
+  if(tab==='dashboard') setTimeout(renderDashboard, 50);
+}
+
+// ── DASHBOARD ─────────────────────────────────────────────────────────────────
+let dashSignalChart=null, dashPriceChart=null;
+
+function renderDashboard(){
+  if(!cards.length) return;
+  renderDigest();
+  renderDashStats();
+  renderLeaderboard();
+  renderDashSignalChart();
+  renderHeatmap();
+  renderDashPriceChart();
+  renderROI();
+  renderTargetTimeline();
+}
+
+function renderDigest(){
+  const now=new Date(), wkAgo=new Date(now-7*24*60*60*1000);
+  const wkStr=wkAgo.toISOString().split('T')[0];
+  const mentionedThisWeek=cards.filter(c=>c.priceHistory.some(p=>String(p.date)>=wkStr)).length;
+  const newThisWeek=cards.filter(c=>String(c.firstSeen)>=wkStr).length;
+  const mentionsThisWeek=cards.reduce((s,c)=>s+c.priceHistory.filter(p=>String(p.date)>=wkStr).length,0);
+  const hotCards=cards.filter(c=>signal(c)==='hot'||signal(c)==='buydip').length;
+  let priceChanges=[];
+  cards.forEach(c=>{
+    const r=c.priceHistory.filter(p=>String(p.date)>=wkStr);
+    if(r.length>=2) priceChanges.push(((r[r.length-1].price-r[0].price)/r[0].price)*100);
+  });
+  const avg=priceChanges.length?priceChanges.reduce((a,b)=>a+b,0)/priceChanges.length:null;
+  document.getElementById('digest-content').innerHTML=`
+    <div class="digest-row"><span class="digest-label">Cards mentioned this week</span><span class="digest-val">${mentionedThisWeek}</span></div>
+    <div class="digest-row"><span class="digest-label">New cards added</span><span class="digest-val">${newThisWeek}</span></div>
+    <div class="digest-row"><span class="digest-label">Total mention logs</span><span class="digest-val">${mentionsThisWeek}</span></div>
+    <div class="digest-row"><span class="digest-label">Hot + Buy Dip cards</span><span class="digest-val">${hotCards}</span></div>
+    ${avg!==null?`<div class="digest-row"><span class="digest-label">Avg price change (logged)</span><span class="digest-val ${avg>=0?'green':'red'}">${avg>=0?'+':''}${avg.toFixed(1)}%</span></div>`:''}`;
+}
+
+function renderDashStats(){
+  document.getElementById('d-total').textContent=fmtCHF(cards.reduce((s,c)=>s+lastP(c),0));
+  document.getElementById('d-hot').textContent=cards.filter(c=>signal(c)==='hot'||signal(c)==='buydip').length;
+  document.getElementById('d-mentions').textContent=cards.reduce((s,c)=>s+c.mentions,0);
+}
+
+function calcScore(c){
+  const p=c.priceHistory.map(x=>x.price);
+  const growth=p.length>1?(p[p.length-1]-p[0])/p[0]:0;
+  const sig=signal(c);
+  let s=c.mentions*10;
+  if(sig==='hot')s+=40; if(sig==='buydip')s+=35; if(sig==='warm')s+=20; if(sig==='watch')s+=10;
+  if(growth>0.2)s+=20; else if(growth>0.05)s+=10;
+  if(c.pinned)s+=15;
+  return Math.round(s);
+}
+
+function renderLeaderboard(){
+  const ranked=[...cards].sort((a,b)=>calcScore(b)-calcScore(a)).slice(0,8);
+  const maxScore=calcScore(ranked[0])||1;
+  const rc=['gold','silver','bronze'];
+  document.getElementById('leaderboard-list').innerHTML=ranked.map((c,i)=>`
+    <div class="lb-row">
+      <div class="lb-rank ${rc[i]||''}">${i+1}</div>
+      <div class="lb-name">${esc(c.name)}<br><span style="font-family:'DM Mono',monospace;font-size:9px;color:var(--text-dim);font-weight:400;">${badgeHtml(signal(c))}</span></div>
+      <div class="lb-bar-wrap"><div class="lb-bar" style="width:${Math.round((calcScore(c)/maxScore)*100)}%"></div></div>
+      <div class="lb-score">${calcScore(c)}</div>
+    </div>`).join('');
+}
+
+function renderDashSignalChart(){
+  const counts={hot:0,warm:0,watch:0,cold:0,buydip:0};
+  cards.forEach(c=>{const s=signal(c);counts[s]=(counts[s]||0)+1;});
+  const cfg={hot:{l:'🔥 Hot',c:'#ff6b35'},warm:{l:'⚡ Warm',c:'#f5c842'},watch:{l:'👁 Watch',c:'#4d9fff'},cold:{l:'❄ Cold',c:'#3d3d5c'},buydip:{l:'🛒 Buy Dip',c:'#39d98a'}};
+  const labels=[],data=[],colors=[];
+  Object.entries(cfg).forEach(([k,v])=>{if(counts[k]>0){labels.push(`${v.l} (${counts[k]})`);data.push(counts[k]);colors.push(v.c);}});
+  const canv=document.getElementById('dash-signal-chart'); if(!canv) return;
+  if(dashSignalChart){try{dashSignalChart.destroy();}catch{} dashSignalChart=null;}
+  dashSignalChart=new Chart(canv.getContext('2d'),{
+    type:'doughnut',
+    data:{labels,datasets:[{data,backgroundColor:colors.map(c=>c+'bb'),borderColor:colors,borderWidth:1,hoverOffset:4}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:true,position:'bottom',labels:{color:'#7a7a9a',font:{family:'DM Mono',size:9},boxWidth:8,padding:6}},tooltip:{callbacks:{label:ctx=>ctx.label}}},cutout:'60%'}
+  });
+}
+
+function renderHeatmap(){
+  const dayMap={};
+  const now=new Date();
+  for(let i=83;i>=0;i--){
+    const d=new Date(now-i*86400000);
+    dayMap[d.toISOString().split('T')[0]]=0;
+  }
+  cards.forEach(c=>c.priceHistory.forEach(p=>{
+    const d=String(p.date).split('T')[0];
+    if(d in dayMap) dayMap[d]++;
+  }));
+  const max=Math.max(...Object.values(dayMap),1);
+  document.getElementById('heatmap').innerHTML=Object.entries(dayMap).map(([date,count])=>{
+    const lvl=count===0?'':count<=max*0.25?'l1':count<=max*0.5?'l2':count<=max*0.75?'l3':'l4';
+    return `<div class="hm-day ${lvl}" title="${date}: ${count} mention${count!==1?'s':''}"></div>`;
+  }).join('');
+}
+
+function renderDashPriceChart(){
+  const top=[...cards].filter(c=>c.priceHistory.length>=2).sort((a,b)=>b.mentions-a.mentions).slice(0,5);
+  if(!top.length) return;
+  const canv=document.getElementById('dash-price-chart'); if(!canv) return;
+  if(dashPriceChart){try{dashPriceChart.destroy();}catch{} dashPriceChart=null;}
+  const colors=['#b77fff','#39d98a','#4d9fff','#f5c842','#ff6b35'];
+  dashPriceChart=new Chart(canv.getContext('2d'),{
+    type:'line',
+    data:{datasets:top.map((c,i)=>({
+      label:c.name.length>14?c.name.slice(0,14)+'…':c.name,
+      data:c.priceHistory.map(p=>({x:String(p.date).split('T')[0],y:parseFloat(p.price)})),
+      borderColor:colors[i],backgroundColor:colors[i]+'18',fill:false,tension:0.4,pointRadius:3,borderWidth:2
+    }))},
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:true,position:'bottom',labels:{color:'#7a7a9a',font:{family:'DM Mono',size:9},boxWidth:8,padding:4}}},
+      scales:{
+        x:{type:'category',ticks:{color:'#7a7a9a',font:{family:'DM Mono',size:9},maxTicksLimit:6},grid:{color:'rgba(255,255,255,0.03)'}},
+        y:{ticks:{color:'#7a7a9a',font:{family:'DM Mono',size:9},callback:v=>'€'+parseFloat(v).toFixed(0)},grid:{color:'rgba(255,255,255,0.04)'}}
+      }
+    }
+  });
+}
+
+function renderROI(){
+  const rows=[...cards].filter(c=>c.priceHistory.length>=2).map(c=>{
+    const first=c.priceHistory[0].price, last=lastP(c);
+    return{c,first,last,roi:((last-first)/first)*100};
+  }).sort((a,b)=>b.roi-a.roi).slice(0,8);
+  document.getElementById('roi-list').innerHTML=rows.length
+    ?rows.map(({c,first,last,roi})=>`
+      <div class="lb-row">
+        <div style="flex:1"><div style="font-weight:600;font-size:12px;color:var(--text)">${esc(c.name)}</div>
+        <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--text-dim)">${fmtCHF(first)} → ${fmtCHF(last)}</div></div>
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:18px;color:${roi>=0?'var(--green)':'var(--red)'};">${roi>=0?'+':''}${roi.toFixed(1)}%</div>
+      </div>`).join('')
+    :`<div style="font-family:'DM Mono',monospace;font-size:11px;color:var(--text-dim);padding:10px 0;">Add more price entries to see ROI</div>`;
+}
+
+function renderTargetTimeline(){
+  const hits=[];
+  cards.forEach(c=>{
+    if(!c.target) return;
+    c.priceHistory.forEach(p=>{if(p.price<=c.target) hits.push({name:c.name,date:p.date,price:p.price,target:c.target});});
+  });
+  hits.sort((a,b)=>String(b.date).localeCompare(String(a.date)));
+  document.getElementById('target-timeline').innerHTML=hits.length
+    ?hits.slice(0,10).map(h=>`
+      <div class="tl-item">
+        <div class="tl-dot"></div>
+        <div class="tl-name">${esc(h.name)}</div>
+        <div class="tl-date">${fmtDate(h.date)}</div>
+        <div class="tl-price">${fmtCHF(h.price)} ≤ 🎯${fmtCHF(h.target)}</div>
+      </div>`).join('')
+    :`<div style="font-family:'DM Mono',monospace;font-size:11px;color:var(--text-dim);padding:10px 0;">Set targets on your cards to see hits here</div>`;
+}
+
+function toast(msg,type='info'){
+  document.querySelector('.toast')?.remove();
+  const t=document.createElement('div');
+  t.className=`toast ${type}`; t.textContent=msg; document.body.appendChild(t);
+  setTimeout(()=>t.style.opacity='0',2200); setTimeout(()=>t.remove(),2500);
+}
+</script>
+
+<!-- GUIDE -->
+<!-- SAVING SPINNER -->
+<div class="saving-overlay" id="saving-overlay" style="display:none">
+  <div class="saving-box"><div class="saving-spinner"></div>Saving to Google Sheets…</div>
+</div>
+
+<!-- CONFIRM DIALOG -->
+<div class="confirm-overlay" id="confirm-overlay" style="display:none" onclick="if(event.target===this)closeConfirm()">
+  <div class="confirm-box">
+    <div class="confirm-title" id="confirm-title">Card Found</div>
+    <div class="confirm-meta" id="confirm-meta"></div>
+    <div class="confirm-btns" id="confirm-btns"></div>
+  </div>
+</div>
+
+<div class="guide" id="guide">
+  <hr class="div">
+  <div class="guide-title">⚙ Setup Guide</div>
+  <div class="guide-sub">3 minutes · free · no coding needed</div>
+
+  <div class="g-step">
+    <div class="g-num">1</div>
+    <div class="g-body">
+      <div class="g-title">Create a Google Sheet</div>
+      <div class="g-desc">Go to <a href="https://sheets.google.com" target="_blank">sheets.google.com</a> → create a blank spreadsheet → name it <b>HOLO TCG Tracker</b>.</div>
+    </div>
+  </div>
+
+  <div class="g-step">
+    <div class="g-num">2</div>
+    <div class="g-body">
+      <div class="g-title">Open Apps Script and paste the code</div>
+      <div class="g-desc">In your sheet click <b>Extensions → Apps Script</b>. Delete everything and paste this code:</div>
+      <div class="code-block" id="script-code">const SHEET_NAME = 'Cards';
+
+function doPost(e) {
+  try {
+    const payload = JSON.parse(e.postData.contents);
+    const ss      = SpreadsheetApp.getActiveSpreadsheet();
+    let   sheet   = ss.getSheetByName(SHEET_NAME);
+    if (!sheet) {
+      sheet = ss.insertSheet(SHEET_NAME);
+      sheet.appendRow(['id','name','set','game','notes','firstSeen','mentions','priceHistory']);
+    }
+    if (payload.action === 'getAll')   return respond(getAllCards(sheet));
+    if (payload.action === 'upsert') { upsertCard(sheet, payload.card); return respond(getAllCards(sheet)); }
+    if (payload.action === 'delete') { deleteCard(sheet, payload.id);   return respond(getAllCards(sheet)); }
+    return respond({ error: 'Unknown action' });
+  } catch(err) {
+    return respond({ error: err.message });
+  }
+}
+
+function getAllCards(sheet) {
+  const rows = sheet.getDataRange().getValues();
+  if (rows.length <= 1) return { cards: [] };
+  return { cards: rows.slice(1).map(r => ({
+    id: r[0], name: r[1], set: r[2], game: r[3], notes: r[4],
+    firstSeen: r[5], mentions: r[6],
+    priceHistory: JSON.parse(r[7] || '[]')
+  }))};
+}
+
+function upsertCard(sheet, card) {
+  const rows = sheet.getDataRange().getValues();
+  for (let i = 1; i < rows.length; i++) {
+    if (rows[i][0] == card.id) {
+      sheet.getRange(i+1,1,1,8).setValues([[
+        card.id, card.name, card.set, card.game||'', card.notes||'',
+        card.firstSeen, card.mentions, JSON.stringify(card.priceHistory)
+      ]]);
+      return;
+    }
+  }
+  sheet.appendRow([
+    card.id, card.name, card.set, card.game||'', card.notes||'',
+    card.firstSeen, card.mentions, JSON.stringify(card.priceHistory)
+  ]);
+}
+
+function deleteCard(sheet, id) {
+  const rows = sheet.getDataRange().getValues();
+  for (let i = rows.length - 1; i >= 1; i--) {
+    if (rows[i][0] == id) { sheet.deleteRow(i + 1); return; }
+  }
+}
+
+function respond(data) {
+  return ContentService
+    .createTextOutput(JSON.stringify(data))
+    .setMimeType(ContentService.MimeType.JSON);
+}
+      <button class="copy-btn" onclick="copyCode()">Copy</button></div>
+    </div>
+  </div>
+
+  <div class="g-step">
+    <div class="g-num">3</div>
+    <div class="g-body">
+      <div class="g-title">Deploy as a Web App</div>
+      <div class="g-desc">
+        Click <b>Deploy → New deployment</b> → click the ⚙️ gear → select <b>Web app</b><br>
+        — Execute as: <b>Me</b><br>
+        — Who has access: <b>Anyone</b><br>
+        Click <b>Deploy</b> → when Google asks to authorize click <b>Advanced → Go to project (unsafe) → Allow</b><br>
+        Copy the URL ending in <b>/exec</b>
+      </div>
+    </div>
+  </div>
+
+  <div class="g-step">
+    <div class="g-num">4</div>
+    <div class="g-body">
+      <div class="g-title">Paste URL and connect</div>
+      <div class="g-desc">Paste the URL into the Connect box at the top → click <b>Connect</b>. Done ✅<br>Next time you open this file it connects automatically.</div>
+    </div>
+  </div>
+</div>
+
+
+</body>
+</html>
